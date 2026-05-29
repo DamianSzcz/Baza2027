@@ -438,6 +438,35 @@
 
 
 
+
+  /* loading overlay */
+  #loading-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(247,245,240,0.85);
+    z-index: 500; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+    backdrop-filter: blur(3px);
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: var(--text-2); font-weight: 500; }
+
+  /* cloud config banner */
+  #config-banner {
+    background: var(--warn-bg); border-bottom: 1px solid rgba(122,80,16,0.2);
+    padding: 10px 2rem; font-size: 13px; color: var(--warn-text);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  #config-banner strong { font-weight: 600; }
+  #config-banner a { color: var(--warn-text); font-weight: 600; }
+  #config-banner .dismiss { margin-left: auto; cursor: pointer; font-size: 18px; opacity: .6; background:none; border:none; color:inherit; }
+
   /* clothing range selector */
   .range-selector { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
   .range-row { display: flex; align-items: center; gap: 10px; }
@@ -478,17 +507,35 @@
 <body>
 
 <!-- NAV -->
+<!-- loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Ładowanie danych z chmury…</div>
+</div>
+
+<!-- config banner (shown when no cloud keys set) -->
+<div id="config-banner" style="display:none">
+  <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  <span>Tryb <strong>lokalny</strong> — dane widoczne tylko na tym urządzeniu. Aby synchronizować z zespołem: <a href="https://jsonbin.io" target="_blank">zarejestruj się na JSONBin.io</a> i wklej klucze API do pliku index.html (linie JSONBIN_KEY i JSONBIN_BIN).</span>
+  <button class="dismiss" onclick="this.parentElement.style.display='none'" aria-label="Zamknij">×</button>
+</div>
+
 <nav class="topnav">
   <div class="nav-brand">
     <span class="wordmark">Centrum Produktów</span>
     <span class="tagline">baza danych zespołu</span>
   </div>
   <div class="nav-actions">
+    <span id="sync-indicator" style="font-size:12px;margin-right:4px;transition:color .3s;"></span>
+    <button class="btn btn-sm" id="btn-reload" onclick="reloadFromCloud()" title="Odśwież dane z chmury" style="display:none;">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Odśwież
+    </button>
     <button class="btn btn-warn" onclick="openImportModal()">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Import Excel
     </button>
-    <button class="btn btn-success" onclick="exportExcel()">
+    <button class="btn btn-success" onclick="exportExcel()" id="btn-export" title="Pobiera zawsze aktualne dane z chmury przed eksportem">
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Eksport Excel
     </button>
@@ -698,8 +745,18 @@ const DEFAULT_BANDS = ['38','40','42','44','46','48','50','52'];
 const CLOTHING_SIZES = ['S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
 const PRESETS_MISC = ['One size'];
 
-let products  = JSON.parse(localStorage.getItem('cp_products')  || 'null');
-let collections = JSON.parse(localStorage.getItem('cp_colls') || 'null');
+// ─── JSONBIN CONFIG ─────────────────────────────────────────────────────────
+// Wejdź na https://jsonbin.io → zarejestruj się → skopiuj Access Key
+// Utwórz bin z {} i skopiuj jego ID
+const JSONBIN_KEY = '$2a$10$ea1kG4rTPWsYuX63LF8i1.HD1zfw0Jw8qZM9iZ81ztaWVOp/2JCoW';
+const JSONBIN_BIN = '6a196d77ddf5aa59f773c3dd';
+
+const USE_CLOUD = JSONBIN_KEY !== 'WKLEJ_TUTAJ_SWOJ_ACCESS_KEY' && JSONBIN_BIN !== 'WKLEJ_TUTAJ_ID_BINU';
+
+let products    = JSON.parse(localStorage.getItem('cp_products') || 'null');
+let collections = JSON.parse(localStorage.getItem('cp_colls')    || 'null');
+let _saveTimer  = null;
+let _syncStatus = 'idle'; // idle | saving | saved | error
 
 const MARKS_PRESETS = [
   'Chlor','Fiszbina','Push-up','Wiązany na szyi','Wiązany na plecach',
@@ -707,23 +764,75 @@ const MARKS_PRESETS = [
   'Zapinka','Miska'
 ];
 
-if (!collections) collections = [
-  {id:'c1', name:'Sorrento',   color:'#C8502A'},
-  {id:'c2', name:'Havana',     color:'#BA7517'},
-  {id:'c3', name:'Laguna',     color:'#1D9E75'},
-  {id:'c4', name:'Nazare',     color:'#185FA5'},
-  {id:'c5', name:'Portofino',  color:'#7F77DD'},
-  {id:'c6', name:'Sardynia',   color:'#D4537E'}
-];
-if (!products) products = [
-  {id:1, name:'KK-2024-01', code:'KK-2024-01', collId:'c1', img:null, sizeType:'clothing', sizes:['XS','S','M','L','XL'], colors:[{hex:'#C8502A',label:'Ceglasty'},{hex:'#1a1a2e',label:'Czarny'}], marks:['Wiązany na szyi','Wkładka'], notes:'Kolekcja Sorrento.'},
-  {id:2, name:'BW-2024-03', code:'BW-2024-03', collId:'c3', img:null, sizeType:'clothing', sizes:['XS','S','M','L'], colors:[{hex:'#1D9E75',label:'Zielony'},{hex:'#EEEEEE',label:'Biały'}], marks:['Wiązany na plecach','Wkładka'], notes:''},
-  {id:3, name:'BP-2024-08', code:'BP-2024-08', collId:'c2', img:null, sizeType:'bra', sizes:['70B','70C','75B','75C','75D','80B','80C','80D'], colors:[{hex:'#ED93B1',label:'Róż'},{hex:'#1a1a2e',label:'Czarny'}], marks:['Push-up','Fiszbina','Zapinka'], notes:'Nowy krój z miękką miseczką.'}
-];
 
-function persist() {
+
+async function persist() {
+  // always keep local backup
   localStorage.setItem('cp_products', JSON.stringify(products));
   localStorage.setItem('cp_colls', JSON.stringify(collections));
+
+  if (!USE_CLOUD) return;
+
+  // debounce cloud saves — wait 800ms after last change
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    setSyncStatus('saving');
+    try {
+      const payload = { products, collections };
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      setSyncStatus('saved');
+    } catch(e) {
+      setSyncStatus('error');
+      console.warn('Cloud sync failed:', e);
+    }
+  }, 800);
+}
+
+async function loadFromCloud() {
+  if (!USE_CLOUD) return false;
+  try {
+    setSyncStatus('saving');
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    const data = json.record;
+    if (data && data.products && data.collections) {
+      products     = data.products;
+      collections  = data.collections;
+      localStorage.setItem('cp_products', JSON.stringify(products));
+      localStorage.setItem('cp_colls',    JSON.stringify(collections));
+      setSyncStatus('saved');
+      return true;
+    }
+    setSyncStatus('idle');
+    return false;
+  } catch(e) {
+    setSyncStatus('error');
+    console.warn('Cloud load failed:', e);
+    return false;
+  }
+}
+
+function setSyncStatus(status) {
+  _syncStatus = status;
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  const states = {
+    idle:   { text: '',              color: 'var(--text-3)',        icon: '' },
+    saving: { text: 'Synchronizacja…', color: 'var(--text-3)',     icon: '⟳ ' },
+    saved:  { text: 'Zsynchronizowano', color: 'var(--success-text)', icon: '✓ ' },
+    error:  { text: 'Błąd synchronizacji', color: 'var(--danger-text)', icon: '✕ ' },
+  };
+  const s = states[status] || states.idle;
+  el.textContent = s.icon + s.text;
+  el.style.color = s.color;
 }
 function getColl(id){ return collections.find(c => c.id === id); }
 
@@ -1090,14 +1199,26 @@ function addColl() {
 function saveColls() { collections = [...tempColls]; persist(); closeModal('coll-ov'); render(); toast('Kolekcje zapisane'); }
 
 // ─── EXCEL EXPORT ─────────────────────────────────────────────────────────────
-function exportExcel() {
+async function exportExcel() {
   if (!window.XLSX) { toast('Biblioteka Excel się ładuje, spróbuj za chwilę'); return; }
+
+  // Always fetch latest cloud data before exporting
+  if (USE_CLOUD) {
+    toast('Pobieram aktualne dane z chmury…');
+    await loadFromCloud();
+    render();
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('pl-PL').replace(/\./g,'-');
+  const filename = `centrum_produktow_${dateStr}.xlsx`;
+
   const wb = XLSX.utils.book_new();
-  const rows = [['ID','Nazwa','Kod','Kolekcja','Typ rozmiarów','Rozmiary','Kolory','Oznaczenia','Notatki']];
+  const rows = [['ID','Kod / Symbol','Kolekcja','Typ rozmiarów','Rozmiary','Kolory','Oznaczenia','Notatki']];
   products.forEach(p => {
     const col = getColl(p.collId);
     rows.push([
-      p.id, p.name, p.code||'', col ? col.name : '',
+      p.id, p.code||'', col ? col.name : '',
       p.sizeType === 'bra' ? 'Biustonoszowe' : 'Odzieżowe',
       p.sizes.join(', '),
       p.colors.map(c => `${c.label}(${c.hex})`).join(', '),
@@ -1106,15 +1227,25 @@ function exportExcel() {
     ]);
   });
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [{wch:10},{wch:24},{wch:14},{wch:24},{wch:16},{wch:32},{wch:32},{wch:24},{wch:36}];
+  ws['!cols'] = [{wch:10},{wch:18},{wch:22},{wch:16},{wch:34},{wch:32},{wch:34},{wch:36}];
+
+  // Style header row
+  const headerCells = ['A1','B1','C1','D1','E1','F1','G1','H1'];
+  headerCells.forEach(cell => {
+    if (!ws[cell]) return;
+    ws[cell].s = { font: { bold: true }, fill: { fgColor: { rgb: 'F5EAE5' } } };
+  });
+
   XLSX.utils.book_append_sheet(wb, ws, 'Produkty');
+
   const cr = [['ID','Nazwa kolekcji','Kolor (hex)']];
   collections.forEach(c => cr.push([c.id, c.name, c.color]));
   const ws2 = XLSX.utils.aoa_to_sheet(cr);
   ws2['!cols'] = [{wch:10},{wch:30},{wch:14}];
   XLSX.utils.book_append_sheet(wb, ws2, 'Kolekcje');
-  XLSX.writeFile(wb, 'centrum_produktow.xlsx');
-  toast('Plik Excel pobrany');
+
+  XLSX.writeFile(wb, filename);
+  toast(`Pobrano ${products.length} produktów → ${filename}`);
 }
 
 // ─── EXCEL IMPORT ─────────────────────────────────────────────────────────────
@@ -1188,7 +1319,45 @@ function bgClick(e, id) { if (e.target === document.getElementById(id)) closeMod
 document.addEventListener('keydown', e => { if (e.key === 'Escape') ['prod-ov','coll-ov','import-ov'].forEach(closeModal); });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-render();
+async function init() {
+  if (!USE_CLOUD) {
+    document.getElementById('config-banner').style.display = '';
+  }
+  if (USE_CLOUD) {
+    document.getElementById('btn-reload').style.display = '';
+    showLoadingOverlay(true);
+    const loaded = await loadFromCloud();
+    showLoadingOverlay(false);
+    // if bin is empty/new, push defaults up
+    if (!loaded) await persist();
+  }
+  // apply defaults if still null
+  if (!collections) collections = [
+    {id:'c1', name:'Sorrento',  color:'#C8502A'},
+    {id:'c2', name:'Havana',    color:'#BA7517'},
+    {id:'c3', name:'Laguna',    color:'#1D9E75'},
+    {id:'c4', name:'Nazare',    color:'#185FA5'},
+    {id:'c5', name:'Portofino', color:'#7F77DD'},
+    {id:'c6', name:'Sardynia',  color:'#D4537E'}
+  ];
+  if (!products) products = [];
+  render();
+}
+
+function showLoadingOverlay(show) {
+  document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+}
+
+async function reloadFromCloud() {
+  if (!USE_CLOUD) return;
+  showLoadingOverlay(true);
+  await loadFromCloud();
+  showLoadingOverlay(false);
+  render();
+  toast('Dane odświeżone z chmury');
+}
+
+init();
 </script>
 </body>
 </html>
