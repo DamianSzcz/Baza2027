@@ -755,7 +755,6 @@ const USE_CLOUD = JSONBIN_KEY !== 'WKLEJ_TUTAJ_SWOJ_ACCESS_KEY' && JSONBIN_BIN !
 
 let products    = JSON.parse(localStorage.getItem('cp_products') || 'null');
 let collections = JSON.parse(localStorage.getItem('cp_colls')    || 'null');
-let _saveTimer  = null;
 let _syncStatus = 'idle'; // idle | saving | saved | error
 
 const MARKS_PRESETS = [
@@ -773,24 +772,22 @@ async function persist() {
 
   if (!USE_CLOUD) return;
 
-  // debounce cloud saves — wait 800ms after last change
-  clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(async () => {
-    setSyncStatus('saving');
-    try {
-      const payload = { products, collections };
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      setSyncStatus('saved');
-    } catch(e) {
-      setSyncStatus('error');
-      console.warn('Cloud sync failed:', e);
-    }
-  }, 800);
+  // save immediately — no debounce, so page refresh never loses data
+  setSyncStatus('saving');
+  try {
+    const payload = { products, collections };
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    setSyncStatus('saved');
+  } catch(e) {
+    setSyncStatus('error');
+    console.warn('Cloud sync failed:', e);
+    toast('Błąd zapisu do chmury — sprawdź połączenie');
+  }
 }
 
 async function loadFromCloud() {
