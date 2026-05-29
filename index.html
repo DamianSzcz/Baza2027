@@ -532,7 +532,7 @@
 <!-- config banner (shown when no cloud keys set) -->
 <div id="config-banner" style="display:none">
   <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-  <span>Tryb <strong>lokalny</strong> — dane widoczne tylko na tym urządzeniu. Aby synchronizować z zespołem: <a href="https://jsonbin.io" target="_blank">zarejestruj się na JSONBin.io</a> i wklej klucze API do pliku index.html (linie JSONBIN_KEY i JSONBIN_BIN).</span>
+  <span>Tryb <strong>lokalny</strong> — dane widoczne tylko na tym urządzeniu. Zdjęcia zawsze przechowywane lokalnie (za duże dla chmury). Aby synchronizować z zespołem: <a href="https://jsonbin.io" target="_blank">zarejestruj się na JSONBin.io</a> i wklej klucze API do pliku index.html (linie JSONBIN_KEY i JSONBIN_BIN).</span>
   <button class="dismiss" onclick="this.parentElement.style.display='none'" aria-label="Zamknij">×</button>
 </div>
 
@@ -542,7 +542,7 @@
     <span class="tagline">baza danych zespołu</span>
   </div>
   <div class="nav-actions">
-    <span id="sync-indicator" style="font-size:12px;margin-right:4px;transition:color .3s;"></span>
+    <span id="sync-indicator" style="font-size:12px;margin-right:4px;transition:color .3s;" title="Zdjęcia są przechowywane lokalnie — dane produktów synchronizowane z chmurą"></span>
     <button class="btn btn-sm" id="btn-reload" onclick="reloadFromCloud()" title="Odśwież dane z chmury" style="display:none;">
       <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Odśwież
@@ -622,7 +622,7 @@
 
     <div class="fg">
       <label class="flbl">Zdjęcie produktu</label>
-      <div class="imgdrop" id="imgdrop" onclick="document.getElementById('f-img').click()">
+      <div class="imgdrop" id="imgdrop" onclick="if(!this.querySelector('.img-status span[style*=Wysyłanie]'))document.getElementById('f-img').click()">
         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         <span>Kliknij, aby dodać zdjęcie</span>
         <span style="font-size:11px;color:var(--text-3)">JPG, PNG, WEBP</span>
@@ -788,6 +788,11 @@ const JSONBIN_BIN = '6a196d77ddf5aa59f773c3dd';
 
 const USE_CLOUD = JSONBIN_KEY !== 'WKLEJ_TUTAJ_SWOJ_ACCESS_KEY' && JSONBIN_BIN !== 'WKLEJ_TUTAJ_ID_BINU';
 
+// ─── CLOUDINARY CONFIG ───────────────────────────────────────────────────────
+const CLOUDINARY_CLOUD = 'dh4nuklkx';
+const CLOUDINARY_PRESET = 'Zdjęcia';
+const USE_CLOUDINARY = CLOUDINARY_CLOUD !== '' && CLOUDINARY_PRESET !== '';
+
 let products    = JSON.parse(localStorage.getItem('cp_products') || 'null');
 let collections = JSON.parse(localStorage.getItem('cp_colls')    || 'null');
 let _syncStatus = 'idle'; // idle | saving | saved | error
@@ -801,16 +806,24 @@ const MARKS_PRESETS = [
 
 
 async function persist() {
-  // always keep local backup
+  // always keep full data (with images) in localStorage
   localStorage.setItem('cp_products', JSON.stringify(products));
   localStorage.setItem('cp_colls', JSON.stringify(collections));
 
   if (!USE_CLOUD) return;
 
-  // save immediately — no debounce, so page refresh never loses data
+  // strip base64 images before sending to cloud (JSONBin limit: 100KB)
+  // Cloudinary images are URLs (small) — kept; base64 images are stripped
+  const productsNoImg = products.map(p => {
+    const isUrl = p.img && (p.img.startsWith('http://') || p.img.startsWith('https://'));
+    if (!p.img || isUrl) return p; // URL or no image — keep as-is
+    const { img, ...rest } = p;
+    return { ...rest, img: null, hasImg: true }; // strip base64
+  });
+
   setSyncStatus('saving');
   try {
-    const payload = { products, collections };
+    const payload = { products: productsNoImg, collections };
     const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
@@ -836,7 +849,17 @@ async function loadFromCloud() {
     const json = await res.json();
     const data = json.record;
     if (data && data.products && data.collections) {
-      products     = data.products;
+      // merge local base64 images back (Cloudinary URLs are already in cloud data)
+      const localProducts = JSON.parse(localStorage.getItem('cp_products') || '[]');
+      const imgMap = {};
+      localProducts.forEach(p => {
+        if (p.img && !p.img.startsWith('http')) imgMap[p.id] = p.img; // only base64
+      });
+
+      products = data.products.map(p => {
+        const isUrl = p.img && p.img.startsWith('http');
+        return { ...p, img: isUrl ? p.img : (imgMap[p.id] || null) };
+      });
       collections  = data.collections;
       localStorage.setItem('cp_products', JSON.stringify(products));
       localStorage.setItem('cp_colls',    JSON.stringify(collections));
@@ -1026,11 +1049,65 @@ function saveInlineColl() {
   toast('Kolekcja "' + name + '" dodana');
 }
 
-function handleImg(e) {
+async function handleImg(e) {
   const file = e.target.files[0]; if (!file) return;
-  const r = new FileReader();
-  r.onload = ev => { imgData = ev.target.result; document.getElementById('imgdrop').innerHTML = `<img src="${imgData}" alt="Podgląd" />`; };
-  r.readAsDataURL(file);
+
+  // show local preview immediately
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('imgdrop').innerHTML = `<img src="${ev.target.result}" alt="Podgląd" />`;
+  };
+  reader.readAsDataURL(file);
+
+  if (USE_CLOUDINARY) {
+    // upload to Cloudinary — returns a permanent shared URL
+    setImgStatus('uploading');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', CLOUDINARY_PRESET);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+        method: 'POST', body: fd
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      imgData = json.secure_url; // store URL, not base64
+      setImgStatus('done');
+    } catch(err) {
+      console.warn('Cloudinary upload failed:', err);
+      // fallback to base64 local
+      const r2 = new FileReader();
+      r2.onload = ev => { imgData = ev.target.result; };
+      r2.readAsDataURL(file);
+      setImgStatus('error');
+      toast('Błąd uploadu zdjęcia — zapisano lokalnie');
+    }
+  } else {
+    // no Cloudinary — store as base64 locally
+    const r2 = new FileReader();
+    r2.onload = ev => { imgData = ev.target.result; };
+    r2.readAsDataURL(file);
+  }
+}
+
+function setImgStatus(status) {
+  const drop = document.getElementById('imgdrop');
+  const existing = drop.querySelector('img');
+  let badge = drop.querySelector('.img-status');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.className = 'img-status';
+    drop.appendChild(badge);
+  }
+  if (status === 'uploading') {
+    badge.innerHTML = '<span style="background:rgba(0,0,0,0.55);color:#fff;font-size:11px;padding:3px 8px;border-radius:4px;position:absolute;bottom:6px;left:50%;transform:translateX(-50%);white-space:nowrap;">⟳ Wysyłanie…</span>';
+    if (drop.style.position !== 'relative') drop.style.position = 'relative';
+  } else if (status === 'done') {
+    badge.innerHTML = '<span style="background:rgba(26,107,60,0.85);color:#fff;font-size:11px;padding:3px 8px;border-radius:4px;position:absolute;bottom:6px;left:50%;transform:translateX(-50%);white-space:nowrap;">✓ Przesłano</span>';
+    setTimeout(() => { if(badge) badge.innerHTML = ''; }, 2500);
+  } else if (status === 'error') {
+    badge.innerHTML = '<span style="background:rgba(139,26,26,0.85);color:#fff;font-size:11px;padding:3px 8px;border-radius:4px;position:absolute;bottom:6px;left:50%;transform:translateX(-50%);white-space:nowrap;">✕ Błąd — zapisano lokalnie</span>';
+  }
 }
 
 // ─── SIZE TYPE ───────────────────────────────────────────────────────────────
