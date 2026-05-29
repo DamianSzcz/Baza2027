@@ -350,7 +350,10 @@
   .preset.on { background: var(--info-bg); color: var(--info-text); border-color: transparent; font-weight: 500; }
 
   /* bra builder */
-  .bra-builder { display: flex; flex-direction: column; gap: 8px; }
+  .bra-builder {
+    display: flex; flex-direction: column; gap: 8px;
+    user-select: none; -webkit-user-select: none;
+  }
   .bra-row { display: flex; align-items: center; gap: 8px; }
   .bra-band-lbl { font-size: 12px; font-weight: 600; color: var(--text-2); min-width: 36px; }
   .bra-cups { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -358,12 +361,25 @@
     width: 32px; height: 30px;
     border: 1px solid var(--border-md); border-radius: 5px;
     background: var(--surface2); color: var(--text-2);
-    font-size: 12px; font-weight: 500; cursor: pointer;
+    font-size: 12px; font-weight: 500; cursor: crosshair;
     display: flex; align-items: center; justify-content: center;
-    transition: all 0.12s; font-family: 'DM Sans', sans-serif;
+    transition: background 0.08s, border-color 0.08s, color 0.08s;
+    font-family: 'DM Sans', sans-serif;
+    pointer-events: auto;
   }
-  .cup-btn:hover { border-color: var(--pink); }
+  .cup-btn:hover { border-color: var(--pink); background: var(--pink-light); }
   .cup-btn.on { background: var(--pink-light); color: var(--pink-text); border-color: var(--pink); font-weight: 600; }
+  .cup-btn.drag-preview { background: var(--pink); color: #fff; border-color: var(--pink); }
+  .bra-drag-hint { font-size: 11px; color: var(--text-3); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .bra-presets-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .bra-preset-btn {
+    padding: 6px 14px; border: 1px solid var(--border-md); border-radius: var(--radius);
+    background: var(--surface); color: var(--text-2); font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .bra-preset-btn:hover { background: var(--pink-light); color: var(--pink-text); border-color: var(--pink); }
+  .bra-preset-lbl { font-size: 11px; color: var(--text-3); margin-top: 6px; margin-bottom: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
   .bra-add { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
   .bra-add input {
     width: 70px; padding: 7px 10px;
@@ -653,6 +669,25 @@
       <!-- BRA -->
       <div id="panel-bra" style="display:none">
         <div class="bra-builder" id="bra-builder"></div>
+        <div class="bra-presets-row">
+          <div style="width:100%" class="bra-preset-lbl">Szybki wybór asortymentu:</div>
+          <button class="bra-preset-btn" onclick="applyBraPreset('730')">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+            730
+          </button>
+          <button class="bra-preset-btn" onclick="applyBraPreset('940')">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+            940
+          </button>
+          <button class="bra-preset-btn" onclick="applyBraPreset('995')">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+            995
+          </button>
+          <button class="bra-preset-btn" onclick="applyBraPreset('8030')">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
+            8030
+          </button>
+        </div>
         <div class="bra-add">
           <input type="text" id="bra-new-band" placeholder="np. 105" maxlength="4" onkeydown="if(event.key==='Enter')addBraBand()" />
           <button class="btn btn-sm" onclick="addBraBand()">
@@ -738,7 +773,7 @@
 
 <script>
 // ─── DATA ───────────────────────────────────────────────────────────────────
-const BRA_CUPS = ['B','C','D','E','F','G'];
+const BRA_CUPS = ['B','C','D','E','F','G','H','I'];
 const DEFAULT_BANDS = ['38','40','42','44','46','48','50','52'];
 
 
@@ -1062,23 +1097,108 @@ function togglePreset(s) {
 }
 
 // ─── BRA BUILDER ─────────────────────────────────────────────────────────────
-function initBra(bands, sel) { braBands = [...bands]; braSelected = {...sel}; renderBra(); }
+// ─── BRA DRAG-SELECT ─────────────────────────────────────────────────────────
+let _drag = { active: false, mode: null }; // mode: 'add' | 'remove'
+
+function initBra(bands, sel) {
+  braBands = [...bands]; braSelected = {...sel};
+  renderBra();
+  // bind drag listeners once on the builder container
+  const builder = document.getElementById('bra-builder');
+  builder.addEventListener('mousedown', braMouseDown);
+  builder.addEventListener('mouseover', braMouseOver);
+  document.addEventListener('mouseup', braMouseUp);
+  // touch support
+  builder.addEventListener('touchstart', braTouchStart, {passive:false});
+  builder.addEventListener('touchmove',  braTouchMove,  {passive:false});
+  builder.addEventListener('touchend',   braTouchEnd);
+}
+
 function renderBra() {
-  document.getElementById('bra-builder').innerHTML = braBands.map(band =>
+  const builder = document.getElementById('bra-builder');
+  // remove old listeners before re-rendering to avoid stacking
+  builder.removeEventListener('mousedown', braMouseDown);
+  builder.removeEventListener('mouseover', braMouseOver);
+  document.removeEventListener('mouseup', braMouseUp);
+  builder.removeEventListener('touchstart', braTouchStart);
+  builder.removeEventListener('touchmove', braTouchMove);
+  builder.removeEventListener('touchend', braTouchEnd);
+
+  builder.innerHTML = braBands.map(band =>
     `<div class="bra-row">
       <span class="bra-band-lbl">${band}</span>
       <div class="bra-cups">${BRA_CUPS.map(cup => {
         const key = band + cup;
-        return `<button class="cup-btn${braSelected[key]?' on':''}" onclick="toggleCup('${band}','${cup}')">${cup}</button>`;
+        return `<button class="cup-btn${braSelected[key]?' on':''}" data-band="${band}" data-cup="${cup}">${cup}</button>`;
       }).join('')}</div>
       <button class="btn btn-sm btn-danger" style="padding:4px 8px" onclick="removeBand('${band}')" title="Usuń obwód ${band}">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>`
-  ).join('');
+  ).join('') + '<div class="bra-drag-hint"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg> Kliknij lub przeciągnij po komórkach aby zaznaczyć / odznaczyć</div>';
+
+  // re-bind
+  builder.addEventListener('mousedown', braMouseDown);
+  builder.addEventListener('mouseover', braMouseOver);
+  document.addEventListener('mouseup', braMouseUp);
+  builder.addEventListener('touchstart', braTouchStart, {passive:false});
+  builder.addEventListener('touchmove',  braTouchMove,  {passive:false});
+  builder.addEventListener('touchend',   braTouchEnd);
+
   updateBraPreview();
 }
-function toggleCup(band, cup) { const k = band+cup; braSelected[k] = !braSelected[k]; renderBra(); }
+
+function getCupBtn(e) {
+  return e.target.closest ? e.target.closest('[data-band]') : null;
+}
+function applyDragToCell(btn) {
+  if (!btn) return;
+  const k = btn.dataset.band + btn.dataset.cup;
+  const shouldOn = _drag.mode === 'add';
+  if (braSelected[k] !== shouldOn) {
+    braSelected[k] = shouldOn;
+    btn.classList.toggle('on', shouldOn);
+    updateBraPreview();
+  }
+}
+function braMouseDown(e) {
+  const btn = getCupBtn(e);
+  if (!btn) return;
+  e.preventDefault();
+  const k = btn.dataset.band + btn.dataset.cup;
+  _drag.mode = braSelected[k] ? 'remove' : 'add';
+  _drag.active = true;
+  applyDragToCell(btn);
+}
+function braMouseOver(e) {
+  if (!_drag.active) return;
+  applyDragToCell(getCupBtn(e));
+}
+function braMouseUp() { _drag.active = false; }
+
+// touch
+function braTouchStart(e) {
+  const t = e.touches[0];
+  const btn = document.elementFromPoint(t.clientX, t.clientY);
+  const cell = btn && btn.closest ? btn.closest('[data-band]') : null;
+  if (!cell) return;
+  e.preventDefault();
+  const k = cell.dataset.band + cell.dataset.cup;
+  _drag.mode = braSelected[k] ? 'remove' : 'add';
+  _drag.active = true;
+  applyDragToCell(cell);
+}
+function braTouchMove(e) {
+  if (!_drag.active) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  const cell = el && el.closest ? el.closest('[data-band]') : null;
+  applyDragToCell(cell);
+}
+function braTouchEnd() { _drag.active = false; }
+
+function toggleCup(band, cup) { /* replaced by drag — kept for safety */ }
 function addBraBand() {
   const inp = document.getElementById('bra-new-band'), v = inp.value.trim();
   if (!v || braBands.includes(v)) return;
@@ -1089,6 +1209,25 @@ function removeBand(band) {
   BRA_CUPS.forEach(c => delete braSelected[band+c]);
   renderBra();
 }
+// ─── BRA PRESETS ─────────────────────────────────────────────────────────────
+const BRA_PRESETS = {
+  '730':  ['38B','38C','38D','38E','40B','40C','40D','40E','40F','42B','42C','42D','42E','42F','44B','44C','44D','44E','44F','46C','46D'],
+  '940':  ['38B','38C','38D','38E','40B','40C','40D','40E','40F','42B','42C','42D','42E','42F','44B','44C','44D','44E','44F'],
+  '995':  ['38F','38G','40E','40F','40G','40H','42D','42E','42F','42G','42H','44D','44E','44F','44G','44H','46C','46D','46E','46F','48D','48E'],
+  '8030': ['38C','38D','38E','40C','40D','40E','40F','42C','42D','42E','42F','44C','44D','44E','44F','46C','46D','46E','46F','48C','48D'],
+};
+
+function applyBraPreset(name) {
+  const sizes = BRA_PRESETS[name];
+  if (!sizes || !sizes.length) { toast('Preset "' + name + '" nie ma jeszcze przypisanych rozmiarów'); return; }
+  // clear current selection
+  Object.keys(braSelected).forEach(k => braSelected[k] = false);
+  // apply preset sizes
+  sizes.forEach(s => { braSelected[s] = true; });
+  renderBra();
+  toast('Zaznaczono preset ' + name + ' (' + sizes.length + ' rozmiarów)');
+}
+
 function getBraSizes() {
   const r = [];
   braBands.forEach(b => BRA_CUPS.forEach(c => { if (braSelected[b+c]) r.push(b+c); }));
