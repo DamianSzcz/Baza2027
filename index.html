@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Centrum Produktów</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #F7F5F0;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE6;
+    --border: rgba(0,0,0,0.10);
+    --border-md: rgba(0,0,0,0.18);
+    --text: #1A1814;
+    --text-2: #6B6760;
+    --text-3: #9E9B96;
+    --accent: #C8502A;
+    --accent-light: #F5EAE5;
+    --accent-text: #8B3319;
+    --pink: #E8B4C8;
+    --pink-light: #FDF0F5;
+    --pink-text: #7A3050;
+    --info-bg: #EBF2FB;
+    --info-text: #1A4A8A;
+    --success-bg: #E8F5EE;
+    --success-text: #1A6B3C;
+    --warn-bg: #FDF3E3;
+    --warn-text: #7A5010;
+    --danger-bg: #FBE8E8;
+    --danger-text: #8B1A1A;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* ── TOP NAV ── */
+  .topnav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 1px 0 var(--border);
+  }
+  .nav-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .nav-brand .wordmark {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .nav-brand .tagline {
+    font-size: 12px;
+    color: var(--text-3);
+    font-weight: 300;
+  }
+  .nav-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid var(--border-md);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn:hover { background: var(--surface2); border-color: var(--border-md); }
+  .btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .btn-primary { background: var(--text); color: #fff; border-color: var(--text); }
+  .btn-primary:hover { background: #2d2a24; border-color: #2d2a24; }
+  .btn-success { background: var(--success-bg); color: var(--success-text); border-color: rgba(26,107,60,0.2); }
+  .btn-success:hover { opacity: 0.9; }
+  .btn-warn { background: var(--warn-bg); color: var(--warn-text); border-color: rgba(122,80,16,0.2); }
+  .btn-warn:hover { opacity: 0.9; }
+  .btn-danger { background: var(--danger-bg); color: var(--danger-text); border-color: rgba(139,26,26,0.2); }
+  .btn-danger:hover { opacity: 0.9; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ── MAIN LAYOUT ── */
+  .main { max-width: 1280px; margin: 0 auto; padding: 2rem 2rem 4rem; }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 1.5rem; flex-wrap: wrap;
+  }
+  .search-box {
+    flex: 1; min-width: 200px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 9px 14px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s;
+  }
+  .search-box:focus-within { border-color: var(--border-md); }
+  .search-box svg { width: 16px; height: 16px; stroke: var(--text-3); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .search-box input {
+    border: none; background: none; outline: none;
+    font-size: 14px; color: var(--text); flex: 1;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .search-box input::placeholder { color: var(--text-3); }
+  .filter-sel {
+    padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: var(--shadow);
+  }
+  .count-pill {
+    font-size: 12px; color: var(--text-3);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 10px;
+    white-space: nowrap;
+  }
+
+  /* ── PRODUCT GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 20px;
+  }
+
+  /* ── PRODUCT CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    animation: cardIn 0.35s ease both;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--border-md); }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .card-img {
+    width: 100%; height: 200px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 8px;
+    color: var(--text-3); font-size: 13px; overflow: hidden;
+    position: relative;
+  }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-img .no-img-icon { width: 36px; height: 36px; stroke: var(--text-3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .card-body { padding: 16px 18px 18px; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .card-name { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .card-code {
+    font-size: 11px; color: var(--text-3);
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px 7px;
+    font-family: 'DM Sans', monospace; white-space: nowrap; flex-shrink: 0;
+  }
+  .coll-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 9px;
+    font-size: 12px; color: var(--text-2); margin-bottom: 12px;
+  }
+  .coll-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .sec-lbl {
+    font-size: 10px; font-weight: 600; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .size-type-tag {
+    font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    font-weight: 500; text-transform: none; letter-spacing: 0;
+  }
+  .tag-clothing { background: var(--info-bg); color: var(--info-text); }
+  .tag-bra { background: var(--pink-light); color: var(--pink-text); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px; }
+  .chip {
+    font-size: 12px; padding: 3px 8px;
+    border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text-2); background: var(--surface2);
+  }
+  .chip-mark { background: var(--accent-light); color: var(--accent-text); border-color: transparent; }
+  .colors-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .cdot-w { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .cdot-c { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); }
+  .clbl { font-size: 10px; color: var(--text-3); }
+  .card-note { font-size: 12px; color: var(--text-3); line-height: 1.55; margin-top: 8px; }
+  .card-actions {
+    display: flex; gap: 6px; margin-top: 14px;
+    padding-top: 12px; border-top: 1px solid var(--border);
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    grid-column: 1 / -1; text-align: center;
+    padding: 5rem 2rem; color: var(--text-3);
+  }
+  .empty svg { width: 48px; height: 48px; stroke: var(--text-3); fill: none; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 16px; }
+  .empty h3 { font-size: 18px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }
+  .empty p { font-size: 14px; }
+
+  /* ── MODALS ── */
+  .modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(26,24,20,0.5);
+    z-index: 200; align-items: flex-start; justify-content: center;
+    padding: 2rem 1rem; overflow-y: auto;
+    backdrop-filter: blur(2px);
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-md);
+    border-radius: var(--radius-lg);
+    width: 100%; max-width: 560px;
+    padding: 1.75rem;
+    margin: auto;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(-12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .modal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); }
+  .modal-close { background: none; border: none; cursor: pointer; color: var(--text-3); padding: 4px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+  .modal-close:hover { color: var(--text); background: var(--surface2); }
+  .modal-close svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .fg { margin-bottom: 14px; }
+  .flbl { font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 5px; display: block; }
+  .finput {
+    width: 100%; padding: 9px 12px;
+    border: 1px solid var(--border-md); border-radius: var(--radius);
+    background: var(--surface); color: var(--text);
+    font-size: 14px; font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.15s;
+  }
+  .finput:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,80,42,0.1); }
+  textarea.finput { min-height: 70px; resize: vertical; line-height: 1.5; }
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* tag inputs */
+  .twrap {
+    display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+    border: 1px solid var(--border-md); border-radius: var(--radius);
+    padding: 6px 10px; background: var(--surface);
+    min-height: 40px; cursor: text;
+    transition: border-color 0.15s;
+  }
+  .twrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,80,42,0.1); }
+  .tchip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px 8px;
+    font-size: 12px; color: var(--text);
+  }
+  .tchip button { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 14px; line-height: 1; padding: 0; transition: color 0.1s; }
+  .tchip button:hover { color: var(--danger-text); }
+  .tinput { border: none; outline: none; background: none; font-size: 13px; color: var(--text); min-width: 80px; flex: 1; font-family: 'DM Sans', sans-serif; }
+
+  /* color builder */
+  .cbuild { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .centry {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 5px 10px;
+  }
+  .centry input[type=color] { width: 24px; height: 24px; border: none; padding: 0; background: none; cursor: pointer; border-radius: 4px; }
+  .centry input[type=text] { border: none; background: none; font-size: 13px; color: var(--text); width: 80px; outline: none; font-family: 'DM Sans', sans-serif; }
+  .centry .del-btn { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: 16px; padding: 0 2px; transition: color 0.1s; }
+  .centry .del-btn:hover { color: var(--danger-text); }
+  .btn-add-color {
+    background: none; border: 1px dashed var(--border-md);
+    border-radius: var(--radius); padding: 6px 12px;
+    font-size: 12px; color: var(--text-2); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: 'DM Sans', sans-serif; margin-top: 6px;
+    transition: background 0.15s;
+  }
+  .btn-add-color:hover { background: var(--surface2); }
+
+  /* image drop */
+  .imgdrop {
+    width: 100%; height: 130px;
+    border: 1px dashed var(--border-md); border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; overflow: hidden;
+    background: var(--surface2); color: var(--text-3);
+    font-size: 13px; flex-direction: column; gap: 6px; margin-top: 6px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .imgdrop:hover { background: var(--bg); border-color: var(--accent); }
+  .imgdrop img { width: 100%; height: 100%; object-fit: cover; }
+  .imgdrop svg { width: 28px; height: 28px; stroke: var(--text-3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* size type toggle */
+  .stt {
+    display: flex; border: 1px solid var(--border-md);
+    border-radius: var(--radius); overflow: hidden; margin-bottom: 12px;
+  }
+  .stt-btn {
+    flex: 1; padding: 9px 12px; background: var(--surface2);
+    border: none; cursor: pointer; font-size: 13px; font-weight: 500;
+    color: var(--text-2); font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .stt-btn:first-child { border-right: 1px solid var(--border-md); }
+  .stt-btn.active-clothing { background: var(--surface); color: var(--info-text); }
+  .stt-btn.active-bra { background: var(--surface); color: var(--pink-text); }
+  .stt-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* clothing presets */
+  .preset-group-lbl { font-size: 11px; color: var(--text-3); margin: 8px 0 5px; font-weight: 500; }
+  .presets { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+  .preset {
+    font-size: 12px; padding: 4px 9px;
+    border: 1px solid var(--border-md); border-radius: 5px;
+    color: var(--text-2); background: var(--surface);
+    cursor: pointer; transition: all 0.12s; font-family: 'DM Sans', sans-serif;
+  }
+  .preset:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+  .preset.on { background: var(--info-bg); color: var(--info-text); border-color: transparent; font-weight: 500; }
+
+  /* bra builder */
+  .bra-builder { display: flex; flex-direction: column; gap: 8px; }
+  .bra-row { display: flex; align-items: center; gap: 8px; }
+  .bra-band-lbl { font-size: 12px; font-weight: 600; color: var(--text-2); min-width: 36px; }
+  .bra-cups { display: flex; gap: 4px; flex-wrap: wrap; }
+  .cup-btn {
+    width: 32px; height: 30px;
+    border: 1px solid var(--border-md); border-radius: 5px;
+    background: var(--surface2); color: var(--text-2);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s; font-family: 'DM Sans', sans-serif;
+  }
+  .cup-btn:hover { border-color: var(--pink); }
+  .cup-btn.on { background: var(--pink-light); color: var(--pink-text); border-color: var(--pink); font-weight: 600; }
+  .bra-add { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .bra-add input {
+    width: 70px; padding: 7px 10px;
+    border: 1px solid var(--border-md); border-radius: var(--radius);
+    background: var(--surface); color: var(--text);
+    font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none;
+  }
+  .bra-add input:focus { border-color: var(--accent); }
+  .bra-preview { font-size: 12px; color: var(--text-3); margin-top: 8px; line-height: 1.6; }
+  .bra-preview strong { color: var(--text-2); font-weight: 500; }
+
+  /* modal form actions */
+  .form-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+    margin-top: 1.5rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+
+  /* collections modal */
+  .coll-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; margin-bottom: 14px; padding-right: 2px; }
+  .coll-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface2);
+  }
+  .coll-dot-inp { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border-md); cursor: pointer; flex-shrink: 0; padding: 0; }
+  .coll-name-inp { flex: 1; border: none; background: none; font-size: 14px; color: var(--text); outline: none; font-family: 'DM Sans', sans-serif; }
+  .coll-del { background: none; border: none; cursor: pointer; color: var(--text-3); padding: 2px 4px; border-radius: 4px; transition: color 0.1s, background 0.1s; }
+  .coll-del:hover { color: var(--danger-text); background: var(--danger-bg); }
+  .coll-del svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .add-coll { display: flex; gap: 8px; align-items: center; }
+  .add-coll input[type=color] { width: 36px; height: 36px; border: 1px solid var(--border-md); border-radius: var(--radius); padding: 3px; cursor: pointer; background: var(--surface); flex-shrink: 0; }
+  .add-coll input[type=text] { flex: 1; padding: 9px 12px; border: 1px solid var(--border-md); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; }
+  .add-coll input[type=text]:focus { border-color: var(--accent); }
+
+  /* import modal */
+  .import-info {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    font-size: 13px; color: var(--text-2); line-height: 1.7; margin-bottom: 16px;
+  }
+  .import-info strong { color: var(--text); font-weight: 600; }
+  .import-drop {
+    width: 100%; padding: 28px;
+    border: 1px dashed var(--border-md); border-radius: var(--radius);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; cursor: pointer; background: var(--surface2);
+    color: var(--text-2); font-size: 13px; transition: all 0.15s; text-align: center;
+  }
+  .import-drop:hover { background: var(--bg); border-color: var(--accent); color: var(--accent); }
+  .import-drop svg { width: 32px; height: 32px; stroke: var(--text-3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .import-drop:hover svg { stroke: var(--accent); }
+  .import-result { margin-top: 12px; padding: 12px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 500; display: none; }
+  .import-result.ok { background: var(--success-bg); color: var(--success-text); }
+  .import-result.err { background: var(--danger-bg); color: var(--danger-text); }
+
+  /* toast */
+  .toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(12px);
+    background: var(--text); color: #fff; padding: 11px 20px;
+    border-radius: var(--radius); font-size: 13px; font-weight: 500;
+    opacity: 0; transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none; z-index: 999; white-space: nowrap;
+    box-shadow: var(--shadow-lg);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 3px; }
+
+
+
+  /* clothing range selector */
+  .range-selector { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .range-row { display: flex; align-items: center; gap: 10px; }
+  .range-lbl { font-size: 12px; font-weight: 600; color: var(--text-2); min-width: 26px; }
+  .range-btns { display: flex; flex-wrap: wrap; gap: 4px; }
+  .range-btn {
+    padding: 4px 10px; border: 1px solid var(--border-md); border-radius: 5px;
+    background: var(--surface); color: var(--text-2); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.12s; font-family: 'DM Sans', sans-serif;
+  }
+  .range-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .range-btn.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* marks grid */
+  .marks-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mark-toggle {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 11px;
+    border: 1px solid var(--border-md); border-radius: 6px;
+    background: var(--surface); color: var(--text-2);
+    font-size: 13px; font-weight: 400; cursor: pointer;
+    transition: all 0.13s; font-family: 'DM Sans', sans-serif;
+    user-select: none;
+  }
+  .mark-toggle:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .mark-toggle.on { background: var(--accent-light); color: var(--accent-text); border-color: var(--accent); font-weight: 500; }
+  .mark-toggle.on::before { content: '✓ '; font-size: 11px; }
+
+  @media (max-width: 640px) {
+    .topnav { padding: 0 1rem; }
+    .main { padding: 1.25rem 1rem 3rem; }
+    .frow { grid-template-columns: 1fr; }
+    .nav-brand .tagline { display: none; }
+    .toolbar { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="topnav">
+  <div class="nav-brand">
+    <span class="wordmark">Centrum Produktów</span>
+    <span class="tagline">baza danych zespołu</span>
+  </div>
+  <div class="nav-actions">
+    <button class="btn btn-warn" onclick="openImportModal()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Import Excel
+    </button>
+    <button class="btn btn-success" onclick="exportExcel()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Eksport Excel
+    </button>
+    <button class="btn" onclick="openCollModal()">
+      <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      Kolekcje
+    </button>
+    <button class="btn btn-primary" onclick="openProductModal()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Dodaj produkt
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="toolbar">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="q" placeholder="Szukaj po nazwie, kodzie, kolekcji lub oznaczeniu…" oninput="render()" />
+    </div>
+    <select class="filter-sel" id="filter-coll" onchange="render()">
+      <option value="">Wszystkie kolekcje</option>
+    </select>
+    <span class="count-pill" id="count-lbl">0 produktów</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════ PRODUCT MODAL ═══════════════════ -->
+<div class="modal-bg" id="prod-ov" onclick="bgClick(event,'prod-ov')">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="prod-title">Nowy produkt</div>
+      <button class="modal-close" onclick="closeModal('prod-ov')" aria-label="Zamknij">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="fg">
+      <label class="flbl">Kod / Symbol *</label>
+      <input class="finput" type="text" id="f-code" placeholder="np. KZ-2024-01" />
+    </div>
+
+    <div class="fg">
+      <label class="flbl">Kolekcja</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select class="finput" id="f-coll" style="cursor:pointer;flex:1;" onchange="handleCollChange()"></select>
+        <button class="btn btn-sm" id="btn-new-coll" onclick="toggleNewColl()" title="Dodaj nową kolekcję" style="flex-shrink:0;padding:8px 12px;">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nowa
+        </button>
+      </div>
+      <div id="new-coll-inline" style="display:none;margin-top:8px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
+          <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Nowa kolekcja</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="color" id="inline-coll-color" value="#C8502A" aria-label="Kolor kolekcji" style="width:36px;height:36px;border:1px solid var(--border-md);border-radius:var(--radius);padding:3px;cursor:pointer;flex-shrink:0;" />
+            <input class="finput" type="text" id="inline-coll-name" placeholder="Nazwa kolekcji" style="flex:1;" onkeydown="if(event.key==='Enter')saveInlineColl()" />
+            <button class="btn btn-primary btn-sm" onclick="saveInlineColl()">Dodaj</button>
+            <button class="btn btn-sm" onclick="toggleNewColl()">Anuluj</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="flbl">Zdjęcie produktu</label>
+      <div class="imgdrop" id="imgdrop" onclick="document.getElementById('f-img').click()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Kliknij, aby dodać zdjęcie</span>
+        <span style="font-size:11px;color:var(--text-3)">JPG, PNG, WEBP</span>
+      </div>
+      <input type="file" id="f-img" accept="image/*" style="display:none" onchange="handleImg(event)" />
+    </div>
+
+    <div class="fg">
+      <label class="flbl">Typ rozmiarówki</label>
+      <div class="stt">
+        <button class="stt-btn active-clothing" id="stt-c" onclick="setSizeType('clothing')">
+          <svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/></svg>
+          Odzieżowa (S / M / L / XL)
+        </button>
+        <button class="stt-btn" id="stt-b" onclick="setSizeType('bra')">
+          <svg viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
+          Biustonoszowa (38B / 40C)
+        </button>
+      </div>
+
+      <!-- CLOTHING -->
+      <div id="panel-clothing">
+        <div class="preset-group-lbl" style="margin-bottom:8px;">Wybierz zakres rozmiarów:</div>
+        <div class="range-selector">
+          <div class="range-row">
+            <label class="range-lbl">Od:</label>
+            <div class="range-btns" id="range-from"></div>
+          </div>
+          <div class="range-row" style="margin-top:6px;">
+            <label class="range-lbl">Do:</label>
+            <div class="range-btns" id="range-to"></div>
+          </div>
+          <button class="btn btn-sm" style="margin-top:10px;width:100%;" onclick="applyClothingRange()">Zastosuj zakres</button>
+        </div>
+        <div class="preset-group-lbl" style="margin-top:12px;">Lub kliknij pojedyncze rozmiary:</div>
+        <div class="presets" id="presets-clothing"></div>
+        <div class="preset-group-lbl" style="margin-top:8px;">Specjalne:</div>
+        <div class="presets" id="presets-misc"></div>
+        <div class="twrap" id="sizes-w" style="margin-top:8px;" onclick="document.getElementById('si').focus()">
+          <input class="tinput" id="si" placeholder="Wpisz własny rozmiar i Enter" onkeydown="addTag(event,'sizes')" />
+        </div>
+      </div>
+
+      <!-- BRA -->
+      <div id="panel-bra" style="display:none">
+        <div class="bra-builder" id="bra-builder"></div>
+        <div class="bra-add">
+          <input type="text" id="bra-new-band" placeholder="np. 105" maxlength="4" onkeydown="if(event.key==='Enter')addBraBand()" />
+          <button class="btn btn-sm" onclick="addBraBand()">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Dodaj obwód
+          </button>
+        </div>
+        <div class="bra-preview">Zaznaczone: <strong id="bra-preview">—</strong></div>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="flbl">Kolorystyka</label>
+      <div class="cbuild" id="cbuild"></div>
+      <button class="btn-add-color" onclick="addColor()">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Dodaj kolor
+      </button>
+    </div>
+
+    <div class="fg">
+      <label class="flbl">Oznaczenia / Właściwości</label>
+      <div class="marks-grid" id="marks-grid"></div>
+    </div>
+
+    <div class="fg">
+      <label class="flbl">Notatki dla zespołu</label>
+      <textarea class="finput" id="f-notes" placeholder="Dodatkowe informacje, terminy dostaw, uwagi…"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('prod-ov')">Anuluj</button>
+      <button class="btn btn-primary" id="prod-save-btn" onclick="saveProduct()">Zapisz produkt</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ COLLECTIONS MODAL ═══════════════════ -->
+<div class="modal-bg" id="coll-ov" onclick="bgClick(event,'coll-ov')">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Kolekcje</div>
+      <button class="modal-close" onclick="closeModal('coll-ov')" aria-label="Zamknij">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="coll-list" id="coll-list"></div>
+    <div class="add-coll">
+      <input type="color" id="nc-color" value="#5DCAA5" aria-label="Kolor kolekcji" />
+      <input type="text" id="nc-name" placeholder="Nazwa nowej kolekcji" onkeydown="if(event.key==='Enter')addColl()" />
+      <button class="btn btn-primary" onclick="addColl()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Dodaj
+      </button>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" onclick="saveColls()">Zapisz zmiany</button></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ IMPORT MODAL ═══════════════════ -->
+<div class="modal-bg" id="import-ov" onclick="bgClick(event,'import-ov')">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Import z Excela</div>
+      <button class="modal-close" onclick="closeModal('import-ov')" aria-label="Zamknij">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="import-info">
+      Wgraj plik <strong>.xlsx</strong> wyeksportowany z tego centrum. Dane zostaną <strong>dołączone</strong> — istniejące produkty nie zostaną nadpisane. Kolekcje z pliku są dodawane automatycznie.<br><br>
+      Możesz też wgrać własny plik Excel z kolumnami: <strong>Nazwa, Kod, Kolekcja, Typ rozmiarów, Rozmiary, Kolory, Oznaczenia, Notatki</strong>.
+    </div>
+    <div class="import-drop" onclick="document.getElementById('f-xlsx').click()" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="18"/><line x1="15" y1="15" x2="12" y2="18"/></svg>
+      <span style="font-weight:500">Kliknij lub przeciągnij plik .xlsx tutaj</span>
+      <span style="font-size:12px;color:var(--text-3)">Obsługiwane formaty: .xlsx, .xls</span>
+    </div>
+    <input type="file" id="f-xlsx" accept=".xlsx,.xls" style="display:none" onchange="handleXlsxFile(event)" />
+    <div class="import-result" id="import-result"></div>
+    <div class="form-actions"><button class="btn" onclick="closeModal('import-ov')">Zamknij</button></div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const BRA_CUPS = ['B','C','D','E','F','G'];
+const DEFAULT_BANDS = ['38','40','42','44','46','48','50','52'];
+
+
+const CLOTHING_SIZES = ['S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
+const PRESETS_MISC = ['One size'];
+
+let products  = JSON.parse(localStorage.getItem('cp_products')  || 'null');
+let collections = JSON.parse(localStorage.getItem('cp_colls') || 'null');
+
+const MARKS_PRESETS = [
+  'Chlor','Fiszbina','Push-up','Wiązany na szyi','Wiązany na plecach',
+  'Wkładka','Ramiączka odpinane','Ramiączko regulacja','Zapinka-regulacja',
+  'Zapinka','Miska'
+];
+
+if (!collections) collections = [
+  {id:'c1', name:'Sorrento',   color:'#C8502A'},
+  {id:'c2', name:'Havana',     color:'#BA7517'},
+  {id:'c3', name:'Laguna',     color:'#1D9E75'},
+  {id:'c4', name:'Nazare',     color:'#185FA5'},
+  {id:'c5', name:'Portofino',  color:'#7F77DD'},
+  {id:'c6', name:'Sardynia',   color:'#D4537E'}
+];
+if (!products) products = [
+  {id:1, name:'KK-2024-01', code:'KK-2024-01', collId:'c1', img:null, sizeType:'clothing', sizes:['XS','S','M','L','XL'], colors:[{hex:'#C8502A',label:'Ceglasty'},{hex:'#1a1a2e',label:'Czarny'}], marks:['Wiązany na szyi','Wkładka'], notes:'Kolekcja Sorrento.'},
+  {id:2, name:'BW-2024-03', code:'BW-2024-03', collId:'c3', img:null, sizeType:'clothing', sizes:['XS','S','M','L'], colors:[{hex:'#1D9E75',label:'Zielony'},{hex:'#EEEEEE',label:'Biały'}], marks:['Wiązany na plecach','Wkładka'], notes:''},
+  {id:3, name:'BP-2024-08', code:'BP-2024-08', collId:'c2', img:null, sizeType:'bra', sizes:['70B','70C','75B','75C','75D','80B','80C','80D'], colors:[{hex:'#ED93B1',label:'Róż'},{hex:'#1a1a2e',label:'Czarny'}], marks:['Push-up','Fiszbina','Zapinka'], notes:'Nowy krój z miękką miseczką.'}
+];
+
+function persist() {
+  localStorage.setItem('cp_products', JSON.stringify(products));
+  localStorage.setItem('cp_colls', JSON.stringify(collections));
+}
+function getColl(id){ return collections.find(c => c.id === id); }
+
+// ─── FORM STATE ─────────────────────────────────────────────────────────────
+let editId = null, fSizes = [], fMarks = [], fColors = [], imgData = null;
+let fSizeType = 'clothing';
+let braBands = [], braSelected = {};
+
+// ─── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ─── RENDER GRID ─────────────────────────────────────────────────────────────
+function renderFilterSel() {
+  const sel = document.getElementById('filter-coll'), cur = sel.value;
+  sel.innerHTML = '<option value="">Wszystkie kolekcje</option>' +
+    collections.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  sel.value = cur;
+}
+
+function render() {
+  const q = document.getElementById('q').value.toLowerCase().trim();
+  const fc = document.getElementById('filter-coll').value;
+  renderFilterSel();
+  const list = products.filter(p => {
+    const col = getColl(p.collId);
+    const matchQ = !q || p.name.toLowerCase().includes(q)
+      || (p.code && p.code.toLowerCase().includes(q))
+      || p.marks.some(m => m.toLowerCase().includes(q))
+      || (col && col.name.toLowerCase().includes(q));
+    return matchQ && (!fc || p.collId === fc);
+  });
+  document.getElementById('count-lbl').textContent = list.length + ' produktów';
+  const g = document.getElementById('grid');
+  if (!list.length) {
+    g.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <h3>Brak produktów</h3>
+      <p>Dodaj pierwszy produkt lub zmień filtry wyszukiwania.</p>
+    </div>`;
+    return;
+  }
+  g.innerHTML = list.map((p, idx) => {
+    const col = getColl(p.collId);
+    const isBra = p.sizeType === 'bra';
+    const delay = Math.min(idx * 0.04, 0.4);
+    return `<div class="card" style="animation-delay:${delay}s">
+      <div class="card-img">
+        ${p.img
+          ? `<img src="${p.img}" alt="${esc(p.name)}" loading="lazy" />`
+          : `<svg class="no-img-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>${esc(p.name)}</span>`}
+      </div>
+      <div class="card-body">
+        <div class="card-top">
+          <div class="card-name">${esc(p.name)}</div>
+          ${p.code ? `<span class="card-code">${esc(p.code)}</span>` : ''}
+        </div>
+        ${col ? `<div class="coll-badge"><span class="coll-dot" style="background:${col.color}"></span>${esc(col.name)}</div>` : '<div style="margin-bottom:12px"></div>'}
+        ${p.sizes.length ? `
+          <div class="sec-lbl">Rozmiary
+            <span class="size-type-tag ${isBra ? 'tag-bra' : 'tag-clothing'}">${isBra ? 'Biustonoszowe' : 'Odzieżowe'}</span>
+          </div>
+          <div class="chips">${p.sizes.map(s => `<span class="chip">${esc(s)}</span>`).join('')}</div>` : ''}
+        ${p.colors.length ? `
+          <div class="sec-lbl">Kolorystyka</div>
+          <div class="colors-row">${p.colors.map(c =>
+            `<div class="cdot-w"><div class="cdot-c" style="background:${c.hex}" title="${esc(c.label)}"></div><span class="clbl">${esc(c.label)}</span></div>`
+          ).join('')}</div>` : ''}
+        ${p.marks.length ? `
+          <div class="sec-lbl">Oznaczenia</div>
+          <div class="chips">${p.marks.map(m => `<span class="chip chip-mark">${esc(m)}</span>`).join('')}</div>` : ''}
+        ${p.notes ? `<div class="card-note">${esc(p.notes)}</div>` : ''}
+        <div class="card-actions">
+          <button class="btn btn-sm" onclick="openProductModal(${p.id})">
+            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Edytuj
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="delProduct(${p.id})">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Usuń
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── PRODUCT MODAL ───────────────────────────────────────────────────────────
+function openProductModal(id) {
+  editId = id || null; fSizes = []; fMarks = []; fColors = []; imgData = null; rangeFrom = ''; rangeTo = '';
+  document.getElementById('f-code').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('imgdrop').innerHTML = `
+    <svg viewBox="0 0 24 24" style="width:28px;height:28px;stroke:var(--text-3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    <span>Kliknij, aby dodać zdjęcie</span>
+    <span style="font-size:11px;color:var(--text-3)">JPG, PNG, WEBP</span>`;
+  document.getElementById('cbuild').innerHTML = '';
+  fillCollSel('');
+  document.getElementById('prod-title').textContent = id ? 'Edytuj produkt' : 'Nowy produkt';
+  document.getElementById('prod-save-btn').textContent = id ? 'Zapisz zmiany' : 'Zapisz produkt';
+  toggleNewColl(false);
+
+  if (id) {
+    const p = products.find(x => x.id === id);
+    document.getElementById('f-code').value = p.code || '';
+    document.getElementById('f-notes').value = p.notes || '';
+    fSizes = [...p.sizes]; fMarks = [...p.marks]; fColors = p.colors.map(c => ({...c}));
+    imgData = p.img;
+    if (p.img) document.getElementById('imgdrop').innerHTML = `<img src="${p.img}" alt="Podgląd" />`;
+    fillCollSel(p.collId || '');
+    fColors.forEach(() => {}); renderFormColors();
+    const st = p.sizeType || 'clothing';
+    setSizeType(st);
+    if (st === 'bra') {
+      const bands = [...new Set(p.sizes.map(s => s.replace(/[A-Z]+$/,'')))].sort((a,b) => +a - +b);
+      const sel = {}; p.sizes.forEach(s => sel[s] = true);
+      initBra(bands.length ? bands : [...DEFAULT_BANDS], sel);
+    } else {
+      initBra([...DEFAULT_BANDS], {});
+    }
+  } else {
+    setSizeType('clothing');
+    initBra([...DEFAULT_BANDS], {});
+  }
+  renderFormTags('sizes'); renderPresets(); renderMarksGrid();
+  document.getElementById('prod-ov').classList.add('open');
+  setTimeout(() => document.getElementById('f-code').focus(), 100);
+}
+
+function fillCollSel(sel) {
+  document.getElementById('f-coll').innerHTML =
+    '<option value="">— brak kolekcji —</option>' +
+    collections.map(c => `<option value="${c.id}"${c.id===sel?' selected':''}>${c.name}</option>`).join('');
+}
+function handleCollChange() { /* placeholder */ }
+function toggleNewColl(forceHide) {
+  const panel = document.getElementById('new-coll-inline');
+  const show = forceHide === false ? false : panel.style.display === 'none';
+  panel.style.display = show ? '' : 'none';
+  if (show) setTimeout(() => document.getElementById('inline-coll-name').focus(), 50);
+  else document.getElementById('inline-coll-name').value = '';
+}
+function saveInlineColl() {
+  const name = document.getElementById('inline-coll-name').value.trim();
+  if (!name) { document.getElementById('inline-coll-name').focus(); return; }
+  const color = document.getElementById('inline-coll-color').value;
+  const id = 'c' + Date.now();
+  collections.push({ id, name, color });
+  persist();
+  fillCollSel(id);
+  toggleNewColl(false);
+  toast('Kolekcja "' + name + '" dodana');
+}
+
+function handleImg(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => { imgData = ev.target.result; document.getElementById('imgdrop').innerHTML = `<img src="${imgData}" alt="Podgląd" />`; };
+  r.readAsDataURL(file);
+}
+
+// ─── SIZE TYPE ───────────────────────────────────────────────────────────────
+function setSizeType(type) {
+  fSizeType = type;
+  document.getElementById('stt-c').className = 'stt-btn' + (type==='clothing' ? ' active-clothing' : '');
+  document.getElementById('stt-b').className = 'stt-btn' + (type==='bra' ? ' active-bra' : '');
+  document.getElementById('panel-clothing').style.display = type==='clothing' ? '' : 'none';
+  document.getElementById('panel-bra').style.display = type==='bra' ? '' : 'none';
+}
+
+// ─── CLOTHING PRESETS ────────────────────────────────────────────────────────
+let rangeFrom = '', rangeTo = '';
+
+function renderPresets() {
+  // clothing individual toggles
+  renderPresetGroup('presets-clothing', CLOTHING_SIZES);
+  renderPresetGroup('presets-misc', PRESETS_MISC);
+  // range buttons
+  renderRangeButtons('range-from', rangeFrom);
+  renderRangeButtons('range-to', rangeTo);
+}
+function renderRangeButtons(elId, selected) {
+  const wrap = document.getElementById(elId); if (!wrap) return;
+  wrap.innerHTML = '';
+  CLOTHING_SIZES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'range-btn' + (s === selected ? ' selected' : '');
+    b.textContent = s;
+    b.onclick = () => {
+      if (elId === 'range-from') rangeFrom = s;
+      else rangeTo = s;
+      renderRangeButtons('range-from', rangeFrom);
+      renderRangeButtons('range-to', rangeTo);
+    };
+    wrap.appendChild(b);
+  });
+}
+function applyClothingRange() {
+  if (!rangeFrom || !rangeTo) return;
+  const fi = CLOTHING_SIZES.indexOf(rangeFrom);
+  const ti = CLOTHING_SIZES.indexOf(rangeTo);
+  if (fi < 0 || ti < 0) return;
+  const from = Math.min(fi, ti), to = Math.max(fi, ti);
+  const range = CLOTHING_SIZES.slice(from, to + 1);
+  range.forEach(s => { if (!fSizes.includes(s)) fSizes.push(s); });
+  renderFormTags('sizes'); renderPresets();
+}
+function renderPresetGroup(elId, arr) {
+  const wrap = document.getElementById(elId); if (!wrap) return;
+  wrap.innerHTML = '';
+  arr.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'preset' + (fSizes.includes(s) ? ' on' : '');
+    b.textContent = s;
+    b.onclick = () => { togglePreset(s); };
+    wrap.appendChild(b);
+  });
+}
+function togglePreset(s) {
+  if (fSizes.includes(s)) fSizes = fSizes.filter(x => x !== s);
+  else fSizes.push(s);
+  renderFormTags('sizes'); renderPresets();
+}
+
+// ─── BRA BUILDER ─────────────────────────────────────────────────────────────
+function initBra(bands, sel) { braBands = [...bands]; braSelected = {...sel}; renderBra(); }
+function renderBra() {
+  document.getElementById('bra-builder').innerHTML = braBands.map(band =>
+    `<div class="bra-row">
+      <span class="bra-band-lbl">${band}</span>
+      <div class="bra-cups">${BRA_CUPS.map(cup => {
+        const key = band + cup;
+        return `<button class="cup-btn${braSelected[key]?' on':''}" onclick="toggleCup('${band}','${cup}')">${cup}</button>`;
+      }).join('')}</div>
+      <button class="btn btn-sm btn-danger" style="padding:4px 8px" onclick="removeBand('${band}')" title="Usuń obwód ${band}">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`
+  ).join('');
+  updateBraPreview();
+}
+function toggleCup(band, cup) { const k = band+cup; braSelected[k] = !braSelected[k]; renderBra(); }
+function addBraBand() {
+  const inp = document.getElementById('bra-new-band'), v = inp.value.trim();
+  if (!v || braBands.includes(v)) return;
+  braBands.push(v); braBands.sort((a,b) => +a - +b); inp.value = ''; renderBra();
+}
+function removeBand(band) {
+  braBands = braBands.filter(b => b !== band);
+  BRA_CUPS.forEach(c => delete braSelected[band+c]);
+  renderBra();
+}
+function getBraSizes() {
+  const r = [];
+  braBands.forEach(b => BRA_CUPS.forEach(c => { if (braSelected[b+c]) r.push(b+c); }));
+  return r;
+}
+function updateBraPreview() {
+  const s = getBraSizes();
+  document.getElementById('bra-preview').textContent = s.length ? s.join(', ') : '—';
+}
+
+// ─── TAG INPUTS ──────────────────────────────────────────────────────────────
+function addTag(e, type) {
+  if (e.key !== 'Enter') return;
+  const inp = document.getElementById('si');
+  const v = inp.value.trim(); if (!v) return;
+  if (!fSizes.includes(v)) fSizes.push(v);
+  inp.value = ''; renderFormTags('sizes'); renderPresets();
+}
+function removeTag(type, i) {
+  if (type === 'sizes') { fSizes.splice(i, 1); renderPresets(); }
+  renderFormTags('sizes');
+}
+function renderFormTags(type) {
+  if (type !== 'sizes') return;
+  const wrap = document.getElementById('sizes-w');
+  const inp = document.getElementById('si');
+  wrap.innerHTML = '';
+  fSizes.forEach((v, i) => {
+    const ch = document.createElement('span'); ch.className = 'tchip';
+    ch.innerHTML = `${esc(v)}<button onclick="removeTag('sizes',${i})" aria-label="Usuń ${esc(v)}">×</button>`;
+    wrap.appendChild(ch);
+  });
+  wrap.appendChild(inp);
+}
+function renderMarksGrid() {
+  const grid = document.getElementById('marks-grid');
+  if (!grid) return;
+  grid.innerHTML = MARKS_PRESETS.map(m => {
+    const on = fMarks.includes(m);
+    return `<button class="mark-toggle${on?' on':''}" onclick="toggleMark('${m.replace(/'/g,"\'")}')">${esc(m)}</button>`;
+  }).join('');
+}
+function toggleMark(m) {
+  if (fMarks.includes(m)) fMarks = fMarks.filter(x => x !== m);
+  else fMarks.push(m);
+  renderMarksGrid();
+}
+
+// ─── COLORS ──────────────────────────────────────────────────────────────────
+function addColor() { fColors.push({hex:'#888888', label:'Kolor'}); renderFormColors(); }
+function renderFormColors() {
+  document.getElementById('cbuild').innerHTML = fColors.map((c, i) =>
+    `<div class="centry">
+      <input type="color" value="${c.hex}" oninput="fColors[${i}].hex=this.value" aria-label="Kolor ${i+1}" />
+      <input type="text" value="${esc(c.label)}" oninput="fColors[${i}].label=this.value" placeholder="Nazwa koloru" aria-label="Nazwa koloru" />
+      <button class="del-btn" onclick="fColors.splice(${i},1);renderFormColors()" aria-label="Usuń kolor">×</button>
+    </div>`
+  ).join('');
+}
+
+// ─── SAVE / DELETE ────────────────────────────────────────────────────────────
+function saveProduct() {
+  const code = document.getElementById('f-code').value.trim();
+  if (!code) { document.getElementById('f-code').focus(); return; }
+  const notes = document.getElementById('f-notes').value.trim();
+  const collId = document.getElementById('f-coll').value;
+  const sizes = fSizeType === 'bra' ? getBraSizes() : [...fSizes];
+  const obj = { name: code, code, collId, img: imgData, sizeType: fSizeType, sizes, colors: fColors.map(c=>({...c})), marks: [...fMarks], notes };
+  if (editId) {
+    const idx = products.findIndex(x => x.id === editId);
+    products[idx] = { id: editId, ...obj };
+    toast('Produkt zaktualizowany');
+  } else {
+    products.push({ id: Date.now(), ...obj });
+    toast('Produkt dodany');
+  }
+  persist(); closeModal('prod-ov'); render();
+}
+function delProduct(id) {
+  if (!confirm('Usunąć ten produkt?')) return;
+  products = products.filter(p => p.id !== id);
+  persist(); render(); toast('Produkt usunięty');
+}
+
+// ─── COLLECTIONS ─────────────────────────────────────────────────────────────
+let tempColls = [];
+function openCollModal() { tempColls = collections.map(c=>({...c})); renderCollList(); document.getElementById('coll-ov').classList.add('open'); }
+function renderCollList() {
+  document.getElementById('coll-list').innerHTML = tempColls.map((c, i) =>
+    `<div class="coll-row">
+      <input type="color" class="coll-dot-inp" value="${c.color}" oninput="tempColls[${i}].color=this.value" aria-label="Kolor kolekcji" />
+      <input class="coll-name-inp" type="text" value="${esc(c.name)}" oninput="tempColls[${i}].name=this.value" aria-label="Nazwa kolekcji" />
+      <button class="coll-del" onclick="tempColls.splice(${i},1);renderCollList()" aria-label="Usuń kolekcję">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+    </div>`
+  ).join('');
+}
+function addColl() {
+  const name = document.getElementById('nc-name').value.trim(); if (!name) return;
+  const color = document.getElementById('nc-color').value;
+  tempColls.push({ id: 'c' + Date.now(), name, color });
+  document.getElementById('nc-name').value = ''; renderCollList();
+}
+function saveColls() { collections = [...tempColls]; persist(); closeModal('coll-ov'); render(); toast('Kolekcje zapisane'); }
+
+// ─── EXCEL EXPORT ─────────────────────────────────────────────────────────────
+function exportExcel() {
+  if (!window.XLSX) { toast('Biblioteka Excel się ładuje, spróbuj za chwilę'); return; }
+  const wb = XLSX.utils.book_new();
+  const rows = [['ID','Nazwa','Kod','Kolekcja','Typ rozmiarów','Rozmiary','Kolory','Oznaczenia','Notatki']];
+  products.forEach(p => {
+    const col = getColl(p.collId);
+    rows.push([
+      p.id, p.name, p.code||'', col ? col.name : '',
+      p.sizeType === 'bra' ? 'Biustonoszowe' : 'Odzieżowe',
+      p.sizes.join(', '),
+      p.colors.map(c => `${c.label}(${c.hex})`).join(', '),
+      p.marks.join(', '),
+      p.notes || ''
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:10},{wch:24},{wch:14},{wch:24},{wch:16},{wch:32},{wch:32},{wch:24},{wch:36}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Produkty');
+  const cr = [['ID','Nazwa kolekcji','Kolor (hex)']];
+  collections.forEach(c => cr.push([c.id, c.name, c.color]));
+  const ws2 = XLSX.utils.aoa_to_sheet(cr);
+  ws2['!cols'] = [{wch:10},{wch:30},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Kolekcje');
+  XLSX.writeFile(wb, 'centrum_produktow.xlsx');
+  toast('Plik Excel pobrany');
+}
+
+// ─── EXCEL IMPORT ─────────────────────────────────────────────────────────────
+function openImportModal() {
+  document.getElementById('import-result').style.display = 'none';
+  document.getElementById('f-xlsx').value = '';
+  document.getElementById('import-ov').classList.add('open');
+}
+function handleDrop(e) { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) processXlsx(f); }
+function handleXlsxFile(e) { const f = e.target.files[0]; if (f) processXlsx(f); }
+function processXlsx(file) {
+  if (!window.XLSX) { showImportResult('err', 'Biblioteka Excel jeszcze się ładuje.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      let imported = 0, newColls = 0;
+      const cs = wb.Sheets['Kolekcje'];
+      if (cs) {
+        XLSX.utils.sheet_to_json(cs, {header:1}).slice(1).forEach(r => {
+          if (!r[1]) return;
+          const name = String(r[1]).trim(), color = r[2] ? String(r[2]).trim() : '#888';
+          if (!collections.find(c => c.name === name)) {
+            collections.push({ id: 'ci'+Date.now()+Math.random(), name, color }); newColls++;
+          }
+        });
+      }
+      const ps = wb.Sheets['Produkty'];
+      if (!ps) { showImportResult('err', 'Nie znaleziono arkusza "Produkty".'); return; }
+      XLSX.utils.sheet_to_json(ps, {header:1}).slice(1).forEach(r => {
+        if (!r[1]) return;
+        const name = String(r[1]).trim(); if (!name) return;
+        const code = r[2] ? String(r[2]).trim() : '';
+        const collName = r[3] ? String(r[3]).trim() : '';
+        const sizeType = (r[4] && String(r[4]).toLowerCase().includes('biuston')) ? 'bra' : 'clothing';
+        const sizesRaw = r[5] ? String(r[5]).trim() : '';
+        const colorsRaw = r[6] ? String(r[6]).trim() : '';
+        const marksRaw = r[7] ? String(r[7]).trim() : '';
+        const notes = r[8] ? String(r[8]).trim() : '';
+        let collId = '';
+        if (collName) {
+          let col = collections.find(c => c.name === collName);
+          if (!col) { col = { id:'ci'+Date.now()+Math.random(), name:collName, color:'#888' }; collections.push(col); newColls++; }
+          collId = col.id;
+        }
+        const sizes = sizesRaw ? sizesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const colors = colorsRaw ? colorsRaw.split(',').map(s => {
+          const m = s.trim().match(/^(.+?)\((.+?)\)$/);
+          return m ? { label: m[1].trim(), hex: m[2].trim() } : { label: s.trim(), hex: '#888' };
+        }).filter(c => c.label) : [];
+        const marks = marksRaw ? marksRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+        products.push({ id: Date.now()+Math.random(), name, code, collId, img: null, sizeType, sizes, colors, marks, notes });
+        imported++;
+      });
+      persist(); render();
+      showImportResult('ok', `Zaimportowano ${imported} produktów${newColls ? ` i dodano ${newColls} nowych kolekcji` : ''}.`);
+    } catch(err) {
+      showImportResult('err', 'Błąd podczas odczytu pliku: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+function showImportResult(type, msg) {
+  const el = document.getElementById('import-result');
+  el.className = 'import-result ' + type; el.textContent = msg; el.style.display = 'block';
+}
+
+// ─── MODAL HELPERS ────────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function bgClick(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') ['prod-ov','coll-ov','import-ov'].forEach(closeModal); });
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
