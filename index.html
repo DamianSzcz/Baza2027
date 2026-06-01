@@ -1885,7 +1885,6 @@ function doPrint() {
 
   const printWin = window.open('', '_blank', 'width=1100,height=800');
 
-  const totalPages = Math.ceil(list.length / 9);
   const makeCard = p => {
     const pcol = getColl(p.collId);
     const isBra = p.sizeType === 'bra';
