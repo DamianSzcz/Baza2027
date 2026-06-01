@@ -1784,7 +1784,6 @@ async function init() {
     showLoadingOverlay(true);
     const loaded = await loadFromCloud();
     showLoadingOverlay(false);
-    // if bin is empty/new, push defaults up
     if (!loaded) await persist();
   }
   // apply defaults if still null
@@ -1797,7 +1796,27 @@ async function init() {
     {id:'c6', name:'Sardynia',  color:'#D4537E'}
   ];
   if (!products) products = [];
+
+  // one-time cleanup: clear old text marks and cupTypes from all products
+  cleanOldMarks();
+
   render();
+}
+
+function cleanOldMarks() {
+  const validMarks = new Set(MARKS_PRESETS);
+  let changed = false;
+  products = products.map(p => {
+    // keep only marks that match current pictogram list
+    const cleanMarks = (p.marks || []).filter(m => validMarks.has(m));
+    // clear cupTypes that might be stale (optional — keep valid ones)
+    if (JSON.stringify(cleanMarks) !== JSON.stringify(p.marks || [])) {
+      changed = true;
+      return { ...p, marks: cleanMarks };
+    }
+    return p;
+  });
+  if (changed) persist();
 }
 
 function showLoadingOverlay(show) {
@@ -1914,36 +1933,43 @@ function doPrint() {
 <title>${title} — Centrum Produktów</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1814;font-size:13px;padding:20px}
-  .print-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1a1814}
-  .print-header h1{font-size:20px;font-weight:700}
-  .print-header .meta{font-size:12px;color:#888}
-  .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .pcard{border:1px solid #e0ddd8;border-radius:10px;overflow:hidden;break-inside:avoid}
-  .pcard-img{width:100%;background:#f5f3ef;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .pcard-img img{width:100%;height:auto;display:block;object-fit:contain}
-  .pcard-noimg{height:120px;width:100%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#aaa}
-  .pcard-body{padding:10px 12px 12px}
-  .pcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:7px}
-  .pcode{font-size:15px;font-weight:700;color:#1a1814}
-  .pcoll{font-size:11px;color:#666;padding:2px 6px;background:#f5f3ef;border-radius:4px;white-space:nowrap}
-  .plbl{font-size:10px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin:7px 0 4px}
-  .ptype{background:#ebf2fb;color:#1a4a8a;padding:1px 5px;border-radius:3px;font-weight:400;text-transform:none;letter-spacing:0}
-  .pchips{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
-  .pchip{font-size:11px;padding:2px 6px;border:1px solid #e0ddd8;border-radius:4px;color:#555;background:#fafaf8}
-  .pmark{font-size:11px;padding:2px 6px;border-radius:4px;background:#f5eae5;color:#8b3319}
-  .pmarks{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
-  .pmark-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
-  .pmark-icon img{width:26px;height:26px;object-fit:contain}
-  .pcolors{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
-  .pcdot-w{display:flex;flex-direction:column;align-items:center;gap:2px}
-  .pcdot{width:18px;height:18px;border-radius:50%;border:1px solid #e0ddd8}
-  .pcdot-w span{font-size:9px;color:#aaa}
-  .pnotes{font-size:11px;color:#aaa;margin-top:6px;line-height:1.5}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1814;font-size:11px;padding:8mm}
+  .print-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid #1a1814}
+  .print-header h1{font-size:15px;font-weight:700}
+  .print-header .meta{font-size:10px;color:#888}
+  /* 3x3 grid filling A4 — gap+padding tuned so 9 cards = 1 page */
+  .pgrid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,1fr);
+    gap:5px;
+    height:calc(297mm - 16mm - 28px); /* A4 height minus margins minus header */
+  }
+  .pcard{border:1px solid #e0ddd8;border-radius:6px;overflow:hidden;break-inside:avoid;display:flex;flex-direction:column}
+  .pcard-img{width:100%;flex:0 0 auto;background:#f5f3ef;display:flex;align-items:center;justify-content:center;overflow:hidden;max-height:72px}
+  .pcard-img img{width:100%;max-height:72px;object-fit:contain;display:block}
+  .pcard-noimg{height:44px;width:100%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#ccc}
+  .pcard-body{padding:5px 7px 6px;flex:1;overflow:hidden}
+  .pcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:4px;margin-bottom:4px}
+  .pcode{font-size:12px;font-weight:700;color:#1a1814;line-height:1.2}
+  .pcoll{font-size:9px;color:#666;padding:1px 4px;background:#f5f3ef;border-radius:3px;white-space:nowrap;flex-shrink:0}
+  .plbl{font-size:8px;font-weight:700;color:#bbb;text-transform:uppercase;letter-spacing:.06em;margin:4px 0 2px}
+  .ptype{background:#ebf2fb;color:#1a4a8a;padding:1px 4px;border-radius:2px;font-weight:400;text-transform:none;letter-spacing:0;font-size:8px}
+  .pchips{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:3px}
+  .pchip{font-size:9px;padding:1px 4px;border:1px solid #e0ddd8;border-radius:3px;color:#555;background:#fafaf8;line-height:1.4}
+  .pmark{font-size:9px;padding:1px 4px;border-radius:3px;background:#f5eae5;color:#8b3319;line-height:1.4}
+  .pmarks{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:3px}
+  .pmark-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+  .pmark-icon img{width:18px;height:18px;object-fit:contain}
+  .pcolors{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:3px}
+  .pcdot-w{display:flex;flex-direction:column;align-items:center;gap:1px}
+  .pcdot{width:14px;height:14px;border-radius:50%;border:1px solid #e0ddd8}
+  .pcdot-w span{font-size:8px;color:#bbb}
+  .pnotes{font-size:9px;color:#bbb;margin-top:3px;line-height:1.4;overflow:hidden;max-height:28px}
   @media print{
-    body{padding:10px}
-    .pgrid{grid-template-columns:repeat(3,1fr)}
-    @page{margin:10mm;size:A4}
+    body{padding:8mm}
+    .pgrid{grid-template-columns:repeat(3,1fr);height:calc(297mm - 16mm - 28px)}
+    @page{margin:8mm;size:A4 portrait}
   }
 </style>
 </head><body>
