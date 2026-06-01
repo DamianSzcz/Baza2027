@@ -166,14 +166,16 @@
   .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--border-md); }
   @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   .card-img {
-    width: 100%; height: 200px;
+    width: 100%;
     background: var(--surface2);
     display: flex; align-items: center; justify-content: center;
     flex-direction: column; gap: 8px;
     color: var(--text-3); font-size: 13px; overflow: hidden;
     position: relative;
+    min-height: 120px;
   }
-  .card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-img img { width: 100%; height: auto; display: block; object-fit: contain; }
+  .card-img.no-photo { height: 160px; }
   .card-img .no-img-icon { width: 36px; height: 36px; stroke: var(--text-3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
   .card-body { padding: 16px 18px 18px; }
   .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
@@ -209,6 +211,9 @@
     color: var(--text-2); background: var(--surface2);
   }
   .chip-mark { background: var(--accent-light); color: var(--accent-text); border-color: transparent; }
+  .card-marks { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 9px; }
+  .card-mark-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+  .card-mark-icon img { width: 30px; height: 30px; object-fit: contain; }
   .colors-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
   .cdot-w { display: flex; flex-direction: column; align-items: center; gap: 3px; }
   .cdot-c { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); }
@@ -379,6 +384,29 @@
     display: inline-flex; align-items: center; gap: 6px;
   }
   .bra-preset-btn:hover { background: var(--pink-light); color: var(--pink-text); border-color: var(--pink); }
+  .bra-preset-btn .del-preset {
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 5px; width: 16px; height: 16px; border-radius: 50%;
+    font-size: 12px; line-height: 1; color: var(--pink-text);
+    background: rgba(122,48,80,0.12); transition: background .12s;
+  }
+  .bra-preset-btn .del-preset:hover { background: var(--pink); color: #fff; }
+  .save-preset-btn {
+    padding: 6px 12px; border: 1.5px dashed var(--pink);
+    border-radius: var(--radius); background: transparent;
+    color: var(--pink-text); font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    display: inline-flex; align-items: center; gap: 5px; transition: all .15s;
+  }
+  .save-preset-btn:hover { background: var(--pink-light); }
+  .save-preset-inline { display:none; align-items:center; gap:6px; margin-top:6px; width:100%; }
+  .save-preset-inline.open { display:flex; }
+  .save-preset-inline input {
+    flex:1; padding:6px 10px; border:1px solid var(--border-md);
+    border-radius:var(--radius); background:var(--surface);
+    color:var(--text); font-size:13px; font-family:'DM Sans',sans-serif; outline:none;
+  }
+  .save-preset-inline input:focus { border-color: var(--accent); }
   .bra-preset-lbl { font-size: 11px; color: var(--text-3); margin-top: 6px; margin-bottom: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
   .bra-add { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
   .bra-add input {
@@ -496,20 +524,78 @@
   .range-btn:hover { border-color: var(--accent); color: var(--accent); }
   .range-btn.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  /* marks grid */
-  .marks-grid { display: flex; flex-wrap: wrap; gap: 6px; }
-  .mark-toggle {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 6px 11px;
-    border: 1px solid var(--border-md); border-radius: 6px;
-    background: var(--surface); color: var(--text-2);
-    font-size: 13px; font-weight: 400; cursor: pointer;
-    transition: all 0.13s; font-family: 'DM Sans', sans-serif;
-    user-select: none;
+  /* cup type multiselect */
+  .multiselect-wrap { position: relative; }
+  .multiselect-trigger {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border-md);
+    border-radius: var(--radius); background: var(--surface); color: var(--text);
+    font-size: 14px; font-family: 'DM Sans', sans-serif; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    text-align: left; transition: border-color .15s;
   }
-  .mark-toggle:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-  .mark-toggle.on { background: var(--accent-light); color: var(--accent-text); border-color: var(--accent); font-weight: 500; }
-  .mark-toggle.on::before { content: '✓ '; font-size: 11px; }
+  .multiselect-trigger:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,80,42,.1); }
+  .multiselect-trigger.open { border-color: var(--accent); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .multiselect-trigger svg { flex-shrink: 0; transition: transform .2s; }
+  .multiselect-trigger.open svg { transform: rotate(180deg); }
+  .multiselect-trigger-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .multiselect-trigger-text.placeholder { color: var(--text-3); }
+  .multiselect-dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+    background: var(--surface); border: 1px solid var(--accent);
+    border-top: none; border-radius: 0 0 var(--radius) var(--radius);
+    box-shadow: var(--shadow-lg); max-height: 280px; overflow-y: auto;
+  }
+  .multiselect-dropdown.open { display: block; }
+  .multiselect-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; cursor: pointer; transition: background .12s;
+    font-size: 14px; color: var(--text); user-select: none;
+  }
+  .multiselect-option:hover { background: var(--surface2); }
+  .multiselect-option.selected { background: var(--accent-light); }
+  .multiselect-checkbox {
+    width: 16px; height: 16px; border: 1.5px solid var(--border-md);
+    border-radius: 4px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; transition: all .12s; background: var(--surface);
+  }
+  .multiselect-option.selected .multiselect-checkbox {
+    background: var(--accent); border-color: var(--accent);
+  }
+  .multiselect-option.selected .multiselect-checkbox::after {
+    content: ''; display: block; width: 4px; height: 7px;
+    border: 2px solid #fff; border-top: none; border-left: none;
+    transform: rotate(45deg) translate(-1px, -1px);
+  }
+  .cup-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .cup-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--accent-light); color: var(--accent-text);
+    border: 1px solid transparent; border-radius: 5px;
+    padding: 2px 8px; font-size: 12px; font-weight: 500;
+  }
+  .cup-tag button { background: none; border: none; cursor: pointer; color: var(--accent-text); font-size: 13px; line-height: 1; padding: 0; opacity: .7; }
+  .cup-tag button:hover { opacity: 1; }
+
+  /* marks grid — pictograms */
+  .marks-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mark-picto {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 5px;
+    width: 52px; height: 52px;
+    border: 1.5px solid var(--border-md); border-radius: 8px;
+    background: var(--surface); cursor: pointer;
+    transition: all 0.13s; font-family: 'DM Sans', sans-serif;
+    user-select: none; position: relative;
+  }
+  .mark-picto img { width: 38px; height: 38px; object-fit: contain; display: block; }
+  .mark-picto-txt { font-size: 10px; color: var(--text-2); text-align: center; }
+  .mark-picto:hover { border-color: var(--accent); background: var(--accent-light); }
+  .mark-picto.on { border-color: var(--accent); background: var(--accent-light); }
+  .mark-picto.on::after {
+    content: '✓';
+    position: absolute; top: 3px; right: 5px;
+    font-size: 11px; color: var(--accent); font-weight: 700;
+  }
 
   @media (max-width: 640px) {
     .topnav { padding: 0 1rem; }
@@ -555,9 +641,9 @@
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Eksport Excel
     </button>
-    <button class="btn" onclick="openCollModal()">
-      <svg viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-      Kolekcje
+    <button class="btn" onclick="openPrintModal()" title="Drukuj podgląd kolekcji">
+      <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Drukuj
     </button>
     <button class="btn btn-primary" onclick="openProductModal()">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -657,36 +743,26 @@
           </div>
           <button class="btn btn-sm" style="margin-top:10px;width:100%;" onclick="applyClothingRange()">Zastosuj zakres</button>
         </div>
-        <div class="preset-group-lbl" style="margin-top:12px;">Lub kliknij pojedyncze rozmiary:</div>
-        <div class="presets" id="presets-clothing"></div>
-        <div class="preset-group-lbl" style="margin-top:8px;">Specjalne:</div>
-        <div class="presets" id="presets-misc"></div>
-        <div class="twrap" id="sizes-w" style="margin-top:8px;" onclick="document.getElementById('si').focus()">
-          <input class="tinput" id="si" placeholder="Wpisz własny rozmiar i Enter" onkeydown="addTag(event,'sizes')" />
+        <div class="twrap" id="sizes-w" style="margin-top:8px;display:none">
+          <input class="tinput" id="si" onkeydown="addTag(event,'sizes')" />
         </div>
       </div>
 
       <!-- BRA -->
       <div id="panel-bra" style="display:none">
         <div class="bra-builder" id="bra-builder"></div>
-        <div class="bra-presets-row">
+        <div class="bra-presets-row" id="bra-presets-row">
           <div style="width:100%" class="bra-preset-lbl">Szybki wybór asortymentu:</div>
-          <button class="bra-preset-btn" onclick="applyBraPreset('730')">
-            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
-            730
+          <div id="bra-preset-btns" style="display:contents"></div>
+          <button class="save-preset-btn" onclick="toggleSavePreset()">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Zapisz zaznaczone jako preset
           </button>
-          <button class="bra-preset-btn" onclick="applyBraPreset('940')">
-            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
-            940
-          </button>
-          <button class="bra-preset-btn" onclick="applyBraPreset('995')">
-            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
-            995
-          </button>
-          <button class="bra-preset-btn" onclick="applyBraPreset('8030')">
-            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>
-            8030
-          </button>
+          <div class="save-preset-inline" id="save-preset-inline">
+            <input type="text" id="new-preset-name" placeholder="Nazwa presetu, np. 1050" maxlength="20" onkeydown="if(event.key==='Enter')saveCurrentAsPreset();if(event.key==='Escape')toggleSavePreset(false)" />
+            <button class="btn btn-primary btn-sm" onclick="saveCurrentAsPreset()">Zapisz</button>
+            <button class="btn btn-sm" onclick="toggleSavePreset(false)">Anuluj</button>
+          </div>
         </div>
         <div class="bra-add">
           <input type="text" id="bra-new-band" placeholder="np. 105" maxlength="4" onkeydown="if(event.key==='Enter')addBraBand()" />
@@ -711,6 +787,18 @@
     <div class="fg">
       <label class="flbl">Oznaczenia / Właściwości</label>
       <div class="marks-grid" id="marks-grid"></div>
+    </div>
+
+    <div class="fg">
+      <label class="flbl">Typ miseczki</label>
+      <div class="multiselect-wrap" id="cup-type-wrap">
+        <button type="button" class="multiselect-trigger" id="cup-trigger" onclick="toggleCupDropdown()">
+          <span class="multiselect-trigger-text placeholder" id="cup-trigger-text">Wybierz typ miseczki…</span>
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="multiselect-dropdown" id="cup-dropdown"></div>
+      </div>
+      <div class="cup-tags" id="cup-tags"></div>
     </div>
 
     <div class="fg">
@@ -798,10 +886,27 @@ let collections = JSON.parse(localStorage.getItem('cp_colls')    || 'null');
 let _syncStatus = 'idle'; // idle | saving | saved | error
 
 const MARKS_PRESETS = [
-  'Chlor','Fiszbina','Push-up','Wiązany na szyi','Wiązany na plecach',
-  'Wkładka','Ramiączka odpinane','Ramiączko regulacja','Zapinka-regulacja',
-  'Zapinka','Miska'
+  'Chlor','Fiszbina','Push-up','Miska/Push-up','Wiązany na szyi','Wiązany na plecach',
+  'Wkładka','Ukryty szew','Podszewka','Ramiączka odpinane',
+  'Zapinka odpinana','Zapinka-regulacja','Zapinka regulacja','Zapinka'
 ];
+
+const MARK_PICTOGRAMS = {
+  'Chlor': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAQADAAMAAAAAAAAAAAAAAAUDBAYBAgf/xAA0EAACAQIEAwYEBQUBAAAAAAABAgMEBQARITEGElETIjJBUmEHFHHBIyRCgbEzNXJ1stH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A+zYxVFRDSU8lRUSLFFGpZ3Y5BR1wqamGjp5KiolWKGNeZ3Y5ADHJ369JRUKXu7U8pgEqpbrYB+JUTHwM49XmF/TudcgArRUk1+b5m4LJFQn+hRklTIPXL56+SbDz10HvNYxR/mLHy0c669iCRBMPSy7D/IDMe40MZT8R5qf5wGxU7kcy0DpIxA9JkB3+gyxsXTie6WqwWitq7XHTVlbWw009M8vOIuckEgrvtngLttuUVyhZlVopom5JoJPHE/Q/yDsRqMbmJlytssk63C3ssVfEvL3vBOnof26HdT+4Oe23KK5Qsyq0U0Tck0EnjibofsdiNRgNzDDDARKWM36pW4VGtDDITRweTkHLtW66jujyGR3IyicdFYOJ+D6ypyFFFcHSRm8KyMmUZP7g4u2Kb5NBY6nuVFImUWe00I0V165DIMPI+xGea+Udou9vntV2MLwypzPG8gUgDZh5jIjfAU8cd8Sv7ZZf93Sf9HGFOHbzBAaOl+IU6UKqMhJBFJMiZZj8U67DfLGar4QtlZw1SWKgvckJoqqOpWoMqzS9rmSCczuSc/tgOxxMuVumaZbjbisdfEvLk2izpv2b/Y/pPtmDGpLTdqOupZqvjyaoiLq3YSU8CCYdMwM9fbHQXK4xW2nEjK0ssh5IYE8Ur+Sj/wB2AzJ0GA04eKrPJCjyViQuygtHJoyHzB9xthiMPh7SVAE9ZUP8zL35uz8POdWy9s88MB0txt0dwhVS7RTRNzwTp44m6j+CNiMwcQXoXu9dJT183ytyjjXuKCY5VHNlKmo9X1XbzBPVY07jborjEgZmimibngnTxxN1H8EHQjQ4DQl4faaVnepTJgCU7M8rNyFeY97PP6EH6nXHifh1p41Vq9w6ssnOsa5l1UKrHPpqevvjZt1zkec2+4qkNfGM8l0SdfWmfl1G6n9ic9xuUNthV5A0ksh5IYI9Xlb0qPvsBqdMBHlt9NYY4pDM8veiWnpUjBZ5FD5qmumZYnouRO21G3W6ZZzcbiyyV0i8oCnNKdPQn3bcn2yAW63SrObjcWWSukXlAU5pTp6E+7bk+wAFPAMMMMAwwwwEfimGKTh+pkeNGeFeeNmUEo3UHyPviJ8PPzVLU1lR+NUhggmk7zhenMdcvbDDAdnhhhgGGGGA/9k=',
+  'Fiszbina': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAQFAwYHAgH/xAAzEAABAwMCBAMGBQUAAAAAAAABAgMEAAURITEGEkFREyIyBxRhcYGxI0JSkaEVJENicv/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwDs1YpEhmJHckSHUtNNpKlrUcBIpJkMxI7kiQ6lpptJUtajgJFVUeO9en2509pTUVtXPFiLGCT0ccHfqE/l3OuwfGobt+PvVybcbhf4ISsp5x+t0dSeiDoOuu3t6xJh/wBxYwiFITr4SfKy9/qtI0H/AEBkfEaG4pQQ7bcmriypSUKaeaVyPsOetpfY/cHYjUVMqsuVtdceTcLepLU9pPKCr0Po35F/Dsd0nXuDnttyauTClJSpp1tXI8w562l9j9wdiMEUEylKUFJFbN+kpuEjWAy4fc2OjhSceKrvqPKOg13IxNg3m3XKXNiQ5SHnoDgbkITn8NR6ff8Aaothe90bFkkeSTDRyt52eZGiVp76YB7H5jOrcQ2S/wDDfFbvFvC0QT25iAi427mwXMbLT8f5znfJoOgKUEpKlEAAZJPSqzh2/wAPiazNXSCT4LqlJwrcFKiDn9s/WtFuV84142iqstr4bk2JiQOSVNmkgoQfUEjAzp2z9N68RbDxN7MZTh4eiOX+xyOVTsUrw805gAqTgdcdAegO2aDo1zuUSz21+4z3fCjR087i8E4HyG9Q5Ub31DF6s7iPeS0FIUdESWjqEK+GuQd0k9iQdHns8We0l5i3TbM7w/YUOJcleOv8Z/ByEgYB/jHXOmK6DOmx7PBRhskjDUeO36nFY8qEj6fQAk6Cgis8U2dxlC1zEMrUkFTbmikHsfiKVSj2eRpID8ySv3l3zveGPLznVWPhnNKDZblbW7iykFamX2lc7D6PU0ruO46EHQjQ1ittycedXAnoSzcGU5UlPpdTt4iM7p7jcHQ9CbKoVytrdxaR51MyGVc7EhHqaV3HcdCDoRpQTaVW225redVAnoSxcGhlSAfK6n9aM7pPbcHQ9Cc9wuLFtj+K9zKUo8rTSBlbqzslI6n7bnSgXG4s22P4roUtSlBDTSBlbqzslI6n7ak6Co1utzxkG5XIpXNWnlQhJyiMg/kT3PdXU/AABbre8qT/AFO58qpqk8qG0nKIyD+VPc91dfkAKtKBSlKBSlKDXuOEpHDT8gJAeYIU04B5mznGUncH5VQ+zV524LmS5ri5UhvlSh55RWtIO4BOoFKUG/0pSgUpSg//2Q==',
+  'Push-up': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAUGAgMEAQf/xAA1EAABAwMCBAQDBgcBAAAAAAABAgMEAAUREiEGMUFRExQiMgdhcRUjQlKBkSQzQ2JyscHx/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/APs1a5EhmLHckSHEttNpKlrUcBIHWvJEhmLHXIkOJaabTqWtRwAKio8d69SG585pTUNtWqLEWMFR6OODv+VPTmd/aHjUR2/HzNxQ41BP8iESUlY/O6OueiDsOu/LN6xph/xFj0Qn07+CMhh7+1SRsP8AIDI+Y2MxSg47bcmriypSUKaeaVofYc97S+x/2DyI3FdlRlytrrjybhb1JantJ0gq9j6Oehfy7Hmk79wd9uuDdxYK0oU062rQ8wv3tL6g/wDDyIwRQdlKUoISK2b9JFwkbwGXD5Rjo4UnHiq77j0jpz5kYqCuJ+J5F+ubFudkSVw7p5dqIm3amFNenOt/bQcFR59B3q5WJ3yrQskj0SYSNKM/1mhslae+2Aex+oz12+1Q7Y5MXEbKFTZBkPZUTqcIAJ35bJG1BVXOJ7on4f328B5Hm4UiUhlegYAQ4Up267CvJt9vUHilP2lNct1oU4ymO4IIdYfCgNQW4DltRUSBnA5c6ycsnCdwfvUtUeX4UCSpc+KHlpYddSkLKi2FaVHBHTc1H3GVwlKuXn1Wy8yg9HZuUhuN4imNKhlC3GwrBICex5daDJfHs1jhziJ19uV5yHJltRH0QlKZGgkIBUARtjcnFWlUWTJiRLxCUlNxEdBWDsiQkjJQrtuTg/hPyJB9hWayzOHpLERJct948SQ4QtX3ge3UQeYzn9K65kuPZbe2AhS9IDUdhO63VY9KR89ufQZJ2FBzs8UWdxlDi5iGVKSCW3NlIOORHcUqDHw8jSR5iZKWJLvreDY9IWd1Y+Wc0oLNcra3cWkfeKZkMq1sSEe5pXcdweRB2IrXbbk4+4uDObSzcGRlaE+1xPIOIzzSf3B2PQmRriuVtRcGkEOKYksnWxIQPU0r/oPIg7EUFXmWPiOG/fo1rjwJMa+LLgfffU2qMpTYQrKQk6htkYIrCL8PGF3YKuZVIhM2uNCbDchxvxC2FBWpKSMggjYk9as9uuS3nVQZyEsXBoZW2D6XE/nR3Sf3B2Pz3XG4sW2P4r2pSlK0NNIGVurPJKR1P/pwKDCVKiWS3tpS1pQkJajx2U+pZxhKED9PoAMnAFabdbnjINyuRSuatOlCEnKIyD+BPc91dT8gAFut7ypP2nc9Kpqk6UNpOURkH8Ke57q6/QAVKUClKUClKUFc46SEcNPSUgJfYIU06Pc2c4yk8wfpUD8NH3ri7MlTnVypDQSlt19RWtAPMAncA0pQfQaUpQKUpQf/2Q==',
+  'Miska/Push-up': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwAAAwADAQEAAAAAAAAAAAAAAAUGAQQHAwL/xAA3EAACAQIEBAIIAwkBAAAAAAABAgMEBQAREiEGMUFREzIHFBUiQlJhcTORsWJjcnOBkqHB4fD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A7NjznnhpYHqKiRYoo1LO7nIKB1OMVFRDSU8lRUSrFFGpZ3Y5BRhVBTzXudK2viaKjjYPTUjjIsRykkHfqF6czv5QxFTTX8+s16yw0B/AoyShlHzy5b79E6DnvsPuWxLRjx7GVop138IZiCb9llGw/iAzH15H0uXE1is7aLld6Olf5JJlDflzwom9J/BkMZb27DIeixI7sfsAMA+ttyjuMTkI0M8TaJ4H88Tdj3HUEbEbjG7jmlTxvV1PEVukj4erbca9/At9XNkDUgEZrLHzCbghua8xnuDfW25R3GJ/caGohbRPTv5om7HuOoI2I3wG7gwYMAkpk9uTC5VRHqELlqSE+V9J/FfvyzUcgMjzyyjrjxJPxVOSLpU2bhvVIqT0kTtUVwj/ABGUqD4cY+b/AMHF3krKbgW72KFWFxpKCRIQBvPCBkHTudOxHMN9xnsWOx8P33h/h+phWOqoqGl0wxsoZCWUA6gfiBB/rngNa32z0fWKiSqhpKPQzSr6zPEZXZowzOdTAnYKx7HLbDuG62JEMyosBjpmqiHpWjdYlORbIqD0xO1FPaYJKioavrxTwV9TDHAsUZEM7xs0jDMe8uktkDmN+XbXsPDXDfE9BUKfWJzHA0IE6RAQ+Lk4aMJmq5Aj3QduowHqXS/+manyOunsts8VP5kvX+1h+WK2526WWVK+gZYq+FclZvLKvPw3+h6HmDuOoMXSsvDfpplhqXygvdvjWndjzeMBdP3yU/mMXdxuENtpTPKGZidMcSDN5XPJVHUn/vIYBQvHNiVQtTUmnmAykhdTqjbqpy6g7YMI5fRobhM9bWXAx1NSxlmREzVXbdgD1GZODAWVytsdxhUF2hnibXBOnmibuO46EHYjY4h6ew3e13ipk4drKe23Bz4tTa6hSaOr/exZbpn1A5HY7ZE9Exp3K2xXGFQXaGaJtcE8fnibuP0IOxGxwHP6hLytZNNceBa+VpXaRkormrwNIyFDIEORDaTl/nnvhlSV3Gs1JHQ2fhSkskEahFnr6oPpAGWehN88u+Ke33KR6g264KsNei55Lsk6/OmfTuOan6ZE7FxuMFtpxJNqZ3OmKJBm8rdFUdT+nM5DARlbwJZ46Z7hxVWVd7uk5VY5gxjcPnmqQIpGnf8A2TkM8VNttsxnFxuWTVhXTFGG1JTIfhU9WPxN1+22M2+3ztU+07npatZSI41OaUyH4V7k9W6/QADDTAGDBgwBgwYMAm4rhik4eqpHjRnhXXGxUEo3cHofrhB6OWNZFVVdUTPUoQizS+84XsGO+X0wYMBcYMGDAGDBgwH/2Q==',
+  'Wiązany na szyi': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAAMBAQEBAAAAAAAAAAAAAAQFBgMCAQf/xAA0EAACAQIFAgQDBwQDAAAAAAABAgMEBQAGERIhMUETMlFhFFKxBxYiQmJxoSQzQ8GBgtH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A/Zscqmpho6aSpqZVihjXc7sdABhU1MNHTSVNTKsUMa7ndjoAMVdNTT3iojr7hE0VNGweko3GhB7SSD5vRfy/v0DzFRSX1hVXSN0o/wDBQvxqPnlHcnsp4Hfnp7msMdL/AFNjWOhqV58NBthm/S6jj/sBqPfoeWZLzdLEEr4LYtdbIkZqzw5Ns8QHO5QeGAGuo1BxAsec5s13BGsFv32iJytTX1LbNTprtjTqTyNSdBgL+23KO4wsQjQzxNsngfzxN6H6gjgjkYm4rblbZZZluFA6w18S7QW8ky9fDf29D1U8juD2ttyjuMLEI0M0TbJ4H88Teh+oPQjkYCZhhhgKWkjN9qFuNTzRQyE0cHZyDp4rep18o7DQ9TxdYp7FN8GgsdR+Coo00i16TQjhXX140BHY+xGvrNN3Nhyvcboo1emp2ZB+rTRf5IwGbuAfP2ZZ7MHZcvWmQCuKNp8ZP18LX5V7+/8AwcfMwWz7kVn3rsNOI6NdqXWghXRJIuniqo4DL/I199avLl3vOQLHRU+YrGkdslbdLcaebxGjkc67pV68k9R098X18zbUVd0ly5l20JeakRA1byS7KeFGHAZu5I7DAaymqIaumiqaeQSQzIHjdejKRqCMQbnbpXmW428rHXxLoN3Czp18N/b0PVTz6g5v7L5q6mtFbl25oEq7LUeDorbgI2G9ND34JH7AY1dyuMVtphIytLK7bIYU80rnoo/96Aak8DAQos12d4UeSrWF2UFopPMh7g+46YYpx9ntJUAT1lS/xMv45vD8u88tp7a64YDS3K2x3GFVLtDNE2+CdPPE3qPoR0I4OKuoRMw2yuy3eVEFVLAyPs8singSx69tdOOoPB7E6DEK5W2O4wqC7QzxNvgnTzxN6j6EHgjg4DFVEeehYZss1eX6O7LJAadbiKxY0ZNNAzoRu3AaHjviFlW0ZyyFb5rTS5do7q08vi/HJXCNQSANGDDcQNO2N7bbnJLM1vuCrDcIhqVXyzL86a9R6jqp4PYnvcbjBbacSS7ndzsihQavK3ZVHc/wOp0GAz9ioZcqW+qr7zOKy8XWo8SZadf7kmmixRg9gB1PuToBi3t1umFQblcir1zrtVVOqU6H8if7bqT7AALdbpviDcrkVeuddqop1SmQ/kX/AG3c+wAFpgGGGGAYYYYChznGhy1UzlF8WAB4pNPxRtr1U9j+2KL7NpHrkq6urdqipQhFmlO91U9QGPIHthhgN3hhhgGGGGA//9k=',
+  'Wiązany na plecach': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAAUDBAYBAgf/xAA2EAACAQIEBAUCBAQHAAAAAAABAgMEBQAGETESIUFRExQiMmEHUhWBscEWQnHwIyRDU3Kh0f/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwD7NiOeeKlgkqKiRYoo1LO7HQKB1OOVFRDSU8lRUSLFFGpZ3Y6BRhVBTzXueOtro2io42D01I40LkbSSDv1C9Nzz9ocippr+3ma9ZIaD/QoySpkH3y9efROnXnyHuaxijHmLHw0c68/BBIhmH2suw/5Aaj5HIuMGAp225RXKFmVWimibgmgk98T9j+oOxHMYuYWXK2yyTrcLeyxV8S8Pq9k6fY/x2O6n8wZ7bcorlCzKrRTRNwTQSe+Jux/Y7EcxgLmDBgwCSmiN+qRX1HOghkPlIOkjKdPFbvzHpHTfcjTLX9sxXb6mtbLBfGtnkrWszhl8SKRzJsynlzBHPfljWWObyaix1HoqKRdItdpoQdFde+g0DDofgjWhfPp7YMwXNrnVJUxVjqFeanqGQsANACNdMAgr89ZtynEkWYsuQVbSuIqeqoagBJZDsCp5jXv/wBYF+oOaWukmXv4RT8cVBIE86vgiM6aMT132Bwrz9kLLOXcoVVbBS1E9xleOGlknqXd+NmG3PTXTXp0xDlnIdnrsz36x5kNRcLhSeDLDVyVDiRo2TnoQeh0GAvXp87We42K7X2+ReBNdIYJaChQpEitrux5ttscb+5W6V5luNvKx18S6eo6LOn+2/x2O6n41BzlL9Jcq01RHMY6yfwnDoktU5UMNjoNMaq5XGK203iurSSOeCGFPfK52Uf3yGpPIYCjFm2yvEjS1iwSFQWik9yHqp+RtgwlP06pqo+ZrKpxUzeubwx6eM820+NdcGA1FytsVyhVWZopom44Z4/fE/cfoRsRyOILbcpZJ2t9wVYq+JeL0+ydPvT47jdT+RLPFO5W2K5QKrM0U0TccM8fvifuP0I2I1BwGaqsvXfMOdYa28rDDZrRJ4lDTo3EaiXTlI/bToPj+uvrNmXrp+M0uacteEbrSoYZaeU8KVcJOvCT0IPMH/wYeW65yPObdcVSGvjGui8knX7016dxup/Ime43KC2wB5QzySHhhhjGryt0VR/YG50GA5W3JLdRpNUITNJoqQR+ppJCPavf+uwA1OgxBbrdN5g3K5FXrnXhVVOqU6H+RP3bcnsAAO263TeYNyuRV6514VVTqlOh/kT923J+AAGeAMGDBgDBgwYBPmmGKTL9TI8aM8K8cbMoJRu4PQ/OEX07/wA1T1VXUf41SrBBNJ6nC9uI89PjBgwG1wYMGAMGDBgP/9k=',
+  'Wkładka': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAAMBAQEBAAAAAAAAAAAAAAQFBgMCAQf/xAA0EAABAwIEBAQEBAcAAAAAAAABAgMEAAUREiExBkFRYRMUIjIHQlJxgaGxwRYkQ2KCotH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A/Zq5SZLMOM5IkOpaZbTmWtRwAFJMlmHGckyXUtMtpzLWo4ACquPGfvElufcG1NRWlBcWIsYHHk44Pq6J+Xc67B5ahu31Xmrm2tuH/QgqxGYfW6OZPJJ0HPXb29YkRf5myBuDJTr4aBlZe/tWkaf5AYjvsc6q8X/jS5yY3DUxFrs8RwtO3MtBxchwbpaB0yj6q+TY/GXCDRuTF1XxJAa9UmHIaSh8I5qbUncjoaDXW25N3FlRCFMvtKyPsL97Suh/UEaEaiptULTkfiGBF4isEhAfW3i2tWiXUc23B98e6TtzBsrbcm7iyohCmXmlZH2F+9pXQ/qDsRqKCZSlKCkiNm+yU3GTrCZcPk2OSyDh4quuo9I5DXc6Q/iFdH7XwfK8mSJkxSYkfA653Dl07gEn8Kn2J7yiBY5HokQ0YN47PMjRK09dMARyPYjGr48tV2ntWmZaorc1VrnJlriLcyF7KDgATpiMedBe2O0R7DZIdqipAaitBAIHuPNX3JxP41PrGI+KFlj+i9Q7nZnhopEuGvAHspIII716V8VeE1emHKkznOTcWG6pR/1AoOXCzY4e45vfDSPTEkoTc4aOSAo5XEjtmwwFaO5W91bybjbylue0nL6tEvo38NfboflPbEHMWpN64j46icRuWV202+JFcYHm1APPhWo9A9oB61rrlcWrbGDi0qcdWcjLKPe6s7JH/dgMSdBQQ2uKrO4yhbktLK1JBU25opB5g9xtSqYfD2JJAfmSF+Zd9b3h+3OdVYdscaUGluVubuLKR4imX2lZ2H0e5pXUdehB0I0NcbbcnHnVwJ6Es3BlOKkp9rqdvERjunqNwdDyJsqhXK2t3FpHrUzIZVnYkI9zSuo6jkQdCNKDrKmxIQa83IaZDzgab8RQSFrOOCRjzOBql4Q4jbvVniLlOxW7hIDqzHaOByIdUjNlxxw0GvU12IiX2O/Yr/DZW/lxcZUMUPJ5ONnfD80n8CYlrsHD3AMBZt8VRekKygk535CjsgE/poBqTzNBeXG4s22OHHApa1qyNMtjFbqzslI6/kBiToKjW63PCQblcilc5acqUpOKI6D8iP3VuT2AAW63PeYNyuRSuctOVKEnFEZB+RP7q5nsABaUClKUClKUGf42Qj+GpEjKPGYwU05h6m1Y7pO4P2qi+Gzjk4zJcxapMhspQh5451pSdwFHUClKDe0pSgUpSg//2Q==',
+  'Ukryty szew': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAAMBAQEBAAAAAAAAAAAAAAQFBgMHAQL/xAA1EAABAwMCBAMFBwUBAAAAAAABAgMEAAURITEGEkFREzJhBxQVIrEkQlJWcZTSFhdDYoLx/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/APZq5SJDMSO5IkOpaabSVLWo4CRSTIZiR3JEh1LTTaSpa1HASKqo8d69SG589pTURshcWIsYJPRxwd+yem512D41Ddvyverk2tuD/ghKynnH43R1J6IOg667ft6xIi/aLIluDJTr4aBysvf6rSNP+gMj12NxSghW25N3FlRCFMvtK5H2F+dpXY/UEaEaiptVtytrrrybhAWlme0nlBV5Hk7+Gv07HdJ1HUHtbbk3cWVEIUy80rkfYX52ldj9QdiNRQTKUpQUkVs36ULhI1gsuH3Rjo4pJx4qu+o+UdN9yMY6HN4+4ivd9btN9gxItunuRkIejBRwDprynpW0sT3uaBY5HySIicNZ2eZBwlae+BgHsfQjNWeDX7ZOlXSx3SS3IffelriurHgvurThIVgZ5QcHr1oK34N7UvzVav2g/jT4N7UvzVav2g/jWl4bvYvEJxDrja58Jfu84NIUlCXgPmCebcZ61YXCfHtdukT5SiliO2XHClJUQAMnQb0Hnl8R7TbFZJl1e4mtrjcRouKQiIMqA6DKa1cZiVcLPbb3GWhN1VDaWskcqJAKQooWB0yTg/dO2mQaz4LceNbcH7ndVx4EgPBpmDlKZEZxI8MrCxkLGp27VoXHo3DtmjR087vgtojx2hq48oJwlI9TjfYak4AoODXFtmW0hTstLDhSCppzzIPVJ9RtSqT+3MaX9pmyliU987wbHy851Vj0zmlBqblbW7iylJWpl5pXOw+jztK7j6EbEaGuNtuTrryrfcEJZntJ5iE+R5O3iI9O43SdD0JsqhXK2t3FlIK1MvtK52H0edpXcfQg6EaGgzF6d4ms3Fj02zWSXeI0mMhJbM5DTLSwTnlQRnOxJ9agzLjxtf1RYMjhSZaWDKbU7Li3RvmQkK1yMajG461sLbc3HXlW+4ISzcGhkpT5Xk/jRncdxuk6HoT3uNxYtsfxXuZSlK5GmkDK3VnZKR1P/pwKBcLgxbIwccClFRCGmWxlbqjslI7/AE3OgqNbrc8ZBuVyKVzVp5UIScojIP3E9z3V1PoAAt1veVJ+J3PlVNUnlQ2k5RGQfup7nurr+gAq0oFKUoFKUoKDjVCP6Zkv8o8ZgBbTmPmbVnGUnof0qg9mrrk9cyVNcVJkN8qUOvHnWkHcAnUClKDfUpSgUpSg/9k=',
+  'Podszewka': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGgABAQEBAQEBAAAAAAAAAAAAAAUEAwYCB//EAC4QAAIBAwMDAwQCAQUAAAAAAAECAwQFEQASIRMxUQZBYRQiMkJxsQcVNVJiwf/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwD9m1yqKiGkp5KiolWKKNSzuxwFGlTUQ0lPJUVEqxRRqWd2OAo1Kp6ea9VEdfXxNFSRsHpaRxgk+0kg8+F9u557BzhgPqCVprhlKRcdKgLYJHs8o75Psh4A789ulVZorchq7O0VvmTkx52wTf8AV17DP/Icj57HBbI56a7z3eOjWaO4VDQS9KiEUy7XKq7szAsgCkZ7nIIGu9x6nqahioBbJIoJz1JjcaVWQKr42FS2dxxkcYxzoK1tuUVygZlVopom2TQP+UTeD/YI4IwRrZrz1JSTVlpoLpQEQ3GOnVD1ITCs4A5R07qM5I91zxkZBq225RXKBmVWiljbZNBJ+cT+D/YPYjBGg2aaaaCJSxm/VK3Co5oYZD9JB7SFTjqt55H2j2HPcjFls7Tt744zqTYpvpIxZKj7KmjTbHngTRDhXXzxgHwf5GbGgl+mWib05Q9Fo2VYgpMczSqGHDAO3LYIIyfGqmpdi3mGryZjH9ZL0uqUI25/Xb+uc4zz51vqd/00vT3b9h27MZzjjGeM6Cd6cZJLbJJE0bwvVTtE8c7Shl6jc5PvnPHYdhr7uVvmaZbjbiqV8S7cMcLUJ32P/wCH9T8Eg9LH/sdDkyFugm4yFS+7HO7bxuznOOM5193K4xW2m6rq0kjnZDCn5Sueyr8/0Mk8DQZIfVNnkhR3rEhZlBaOThkOOx+RpqIP8eU1SPqKypcVMv3zdMfbvPLY+M500HprlbY7jEmXaGeFt8E6flE3keR7EdiODrCLzMlFWw1MZiuVJA0hjijMnVAHEka92BP69weD7E2tY7jbkuES4kaCoiO6CoT8om8jyPYg8EaDP6fNGlpipKSWBjSgRzrCgQJJgM2U/UktnHzqhPNFTQSTzyLFFEpd3c4CqBkkn2GoSh6+rjjl6VDfKM5D7SySxkrvZBkblYLjnJU4+CVU0qGG432OINHxS0EBMjGY714bjeWQjgjA5OffQfNsudJbLfVCMb6cVR+ijp6bpiYSAOqx+z5LElhgd84wTrfbrdMag3K5FXrXXaiKcpTIf0XyfLe5+AAFut0xqP8AUrltatZdqRqcpTIf0XyfLe/8ADVTQNNNNA0000HnfXKqvpmepCgTwENFKB90ZzjKnuD/ABqF/jWaW4S1lVWyvVVEYVUlmYu6g5yATyBppoPf6aaaBpppoP/Z',
+  'Zapinka odpinana': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGgABAAIDAQAAAAAAAAAAAAAAAAQFAgMGB//EADkQAAIBAgQEAgcGBQUAAAAAAAECAwQFABEhMQYSQVEyYRMUFSJSsdEHQlVxlMEWJFZXYoKTodLw/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/APZsaqmpgo6aSpqZVihiXmd2OQAwqamCjppKmplWKGNeZ3Y5ADFXTU094qUuFwiaKmjPNSUbjIg9JJB8XZfu/nsGMVFJfW9aukTpR7wUL6Zj45R1J6KdB112zlsMVKfWLKsdBULr6OMcsM3+LqNP9QGY/wCDcYYCHbrjHcIm9xoZ4jyTQP4om7HuOoOxGuJmK642+SWVa6hZYq+JclZvDKu/I/l2O4Oo6g7bbco7jCzBGhmibkngfxxN2PzB2I1GAmYYYYCko4zfKlblUa0cTn1ODoxBy9K3cn7o6DXc6OM66ptnBt2raOUxVENK7RuN1OW4xnYpvU0FjqPcqKRMos9poRorr30yBHQ+RGdPxjf7dTyycP8AEMMtHa7nSsi3INmgc6FDp7py1BOhwEW3cFXCstlLVScb8Qh5oUkYLULkCQCcvd88Sf4Crf634j/Ur/1xysU1jghSGL7W61I41CookXQDQDbGXrln/u9Xf7i/TAT+I7VduEvZVwpuLbzVmW5wU7w1UqvGyMdcxkO2O3uVuleVbhbysdfEuQ5jks6b+jfy7HdTr3B8kvk1DPUWZKPj2qv0ntWn/k5CGGXN4tB0/fHsVyuEdupvSMjSyueSGFPFK/RR9dgMydBgIUXFlneFHkq1hdlBaKTxIeqnzG2GKcfZ7SVAE9ZUP6zJ783o/DznVsvLPPDAdLcrbHcYVUu0M0Tc8E6eOJu4+RGxGhxFo6sVpktd2giFZGubxlc450+NM9x3G6nQ9CbbEK5W2O4wqC7QzxNzwTp44m7j5EHQjQ4DH2DZvwmh/Tp9MPYNm/CaH9On0xhbrnJLM1BcFWG4RDMqvgmX40z3HcbqdD0J33G4wW2APLzO8jckUKDN5W6Ko/8AADU5DARKqCz2ZUqUttMs5blgSCBRJI52VdN/kMydMbLfb5RObhcCr1rrygKc0gT4E/c7k+QAC30E3pzcbiVetdeVVU5pTofuL+7dT5AAWWAYYYYBhhhgKLjKNDw3UzlFMsADxPl70bZ7qeh/LFF9m7vWx1dXVsaipQhFmlPM6qdwGOuXlhhgO6wwwwDDDDAf/9k=',
+  'Zapinka-regulacja': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwAAAgMBAQEAAAAAAAAAAAAAAAUDBAYBAgf/xAAzEAACAQIEBAUDAgYDAAAAAAABAgMEBQAREiEGEzFBBxQiUWEyUsFCsRUzNmJxgZGh8P/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwD7NiOeeKlgkqKiRYoo1LO7HIKB3OOVFRDSU8lRUSLFFGpZ3Y5BRjMXm5rBa34hu9NP5ClZDS0Cr65XLBUdwe+ZGSnp1O+wBjFTTX8+Zr1lhoD/ACKPMoZB98uW+/ZO3ffYepbJ5IeYsemlmXcwaiIZh9rL0U/3AZj5G2Es/iE8a1cEfDdza4UMRmqaeTlosUYGrUZNRXcA5AZk+2OHxIhgiqauss1bHboHWLzcOmUcworBWUZFfrAB6Z9xgNRbrjFcoGdFaOWNtE0MmzxP3Uj89CMiNsXMZChuzX+51klFQVNqvNuWPmQVgUCoicEqr6SfY5Hqp98yDo7dcYrlAXRWjljbRNDJs8T91I/PQjIjbAXMGDBgElNGb9UrX1G9BDIfKQdpCpy5re+49I7depGS7xN/oeqYkALPTMSew56YaWKbykYslR6KijTTHn0mhGyuvvtkD7H4IzYV1DS3Oiloq2BJ6eZdMkbjMMMBh4qmnip+PLdLLGbgTPUEagWeFoAEI+Blll2/3hfR1lFR+HXE/nmXRPIYY0Y7ySNSwhVHzmR+/bDi72zw1tsYtFwS10TqNWgScqUahlmWU6tx7ncYpWqXw6mkE9fJZDX1HoeM1RnjHRBp17AlQuZyGAu8HxT0/Gd2gqZOZPHa7ekrZ55uEcHf/ONLcrdMZxcrcVSujXSQxySoT7H/AAex+CQSz8O2fh9ZhabfDSCcgycsfVl0/wCM+mJ7lcYrbTc11aSRzohhT6pXPRR/7YZk7DAVIeKbPJCjvWJCzKC0cmzIcuh+RgwkHh7S1IE9ZUv5mX1zcv6dZ3bL4zzwYDTXK2x3GFQXaGeJtcE8f1xN7j9iDsRscQ225SyzNb69Fhr4l1EL9Ey9NafHuOqnY9iWWKdytsdxhUF2hnibXBOn1xN7j9iDsRscBhmrq2j4x4jWjvFkt6tUwlkuYJdzyE9S5Mvp7d9wcU+K7rdJ+FblFPxHwvURvTsHhplPNkHcJnIfUe2x3xsoYrfc6s0l9tdE9ziTrJCrCZPvjLDPL3HVTsexPutoOHbOiVH8GoueWAgjhpU5kj9gu3X57dTkBgL1XcIbZQxySLIzvkkUK7ySvlsoHc/9DcnIDENut03mDcrkVeuddKqpzSnQ/oT8t1J9gAB23W6bzBuVyKvXOulVU5pTof0J+W6k/AADPAGDBgwBgwYMAk4uijbh2plaNTJCuuJyN0bPqD2PyMJPDljWU9VWVRM9SrBFml9ThfYMd8vjBgwG2wYMGAMGDBgP/9k=',
+  'Zapinka regulacja': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAQFAgMGBwH/xAA8EAABAwIDBQMHCgcAAAAAAAABAgMEAAUREiEGBzFBUTJSYRMUFyJWobEVIyRCcZKVwdHSQ1NigYKi8P/EABQBAQAAAAAAAAAAAAAAAAAAAAD/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwD2atUmSzDjOSJLqWmW05lrUcABSTJZhx3JEhxLTTYzLWo6AVVxoz94kt3C4NKajtnNEhrGBB5OODvdE/V+3gGLUJy+q86ujS0RP4EFemI77o5k8knQc9eGb1hbi/SLIluBJTrkQnKy9/StA0/yAxHuNxSghW25N3FpfzamZDKsj8dfaaV0PUcwRoRrU2q6425x11E6CtLM5oYJUrsup7i+o6HiDqOYO23XBu4MqIQpp5pWR5hfaaV0PxB4EaigmUpSgpIbZvklNyk6w2VnzJjkog4eVV1PdHIa8TpSb1blMt+zEdqHKcieezmoz0htWVTbasSSDy4VfWN7zNAscj1JERGDWPB5kHBK09cBgCOR8CMeZ3xqx2PjMOKyRX7iy3JX3W9STjy1A1oME7rLBlGO0N6UevygNfdX30WWD2gvX4gP0qInd7utyj6RGOnH5TOv+1ffR7ut/nxvxM/uoMtk2nNnd5cvZqHdpVwty7cJJTJe8qWnM4HHlofeK7W5251x1Nwt6ktz2U4DMcEvo4+TX4dDxSdeoPn2xlutFj3sTbfs04l63LtYW8Uu+VDbmcaZvs5Y869IuVxbtscLUlTrzhyMsI7Tq+SR+Z4AYk6CggtbWWZbKFuy0srUkFTTnaQeaT4jhSqkbvYcgB+ZIWZLnrveT7Oc6qw8McaUHSXK2t3FlKStTLzSs7D6O20rqPgRwI0NQmnGbuy9ZL7EZXIyfOMqTi3IRj20Y8scNOKT/Ym5qFcra3cWUgrUy+0rOw+jttK6j4EHQjQ0FD6MNivZ+P8AfX+tPRfsV7PsffX+6rm3XJxx4wLglLNwbGJSnsvJ76Oo6jik6HkTuuNyZtrAccCnHFqyMso1W6vklI/4AanAUFZGtlg2LiLNstjbC5CglLTCcXH18kgnU8+JwAxOgqZbrc8l9VxuKkuT3E5QEnFEdHcR+Z4k+AAC3W54SDcrkUuTnE5QlJxRHR3EfmriT4AAWdApSlApSlBRbZNtnZuS8UJLrAC2lkes2rHik8j4iqPdutU1qXLlqMiSghCXnTmWlJ4gKOuHhSlB3NKUoFKUoP/Z',
+  'Zapinka': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAUGAwQHAgH/xAAyEAACAQIDBgUDAgcAAAAAAAABAgMEBQARIQYSMUFRYQcUIjJSE7HBIyQXM0JxcoHR/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhEDEQA/AOzYxVFRDSU8lRUSLFFGpZ3Y5BR1wqamGkp5KiolWKKNd53Y5ADEVBTTXqpSur42ipImDUtI4yLEcJJB16Ly4nX2h8ipZr83mbgskNCf5FGSVMg+cvPXknAc9dB7msYov3Fj3aSddTACRBMPiy8B/kBmO40MxhgNO23KK5Qsyq0U0Tbk0EnvifofuDwI1GNzEZcrbLJOtwt7LFXxLu+r2Tp8H7dDxU/7Bz225RXKFmVWimibcmgk98TdD+DwI1GA3MMMMBCUsZv1StwqNaGGQ+Tg5OQcvqt11HpHIa8SMqjtDHUXnxIq6CpvtxtlBbbR5seSnMeTb2rHrp9sXGxS+TjFkqPRUUiZRE8Johorr10yBHI9iM6fdooqnxPvdBNOlP5zZpoleRgoGbZZ59vxgIcWm9X3w3rtob/fK+ZEo5ZaCmVxENwAlHl3fcx468uueNuxWCpvl2vdVRXest9xpVo/LzRykpmaZDk6HRlJxntu0FHePBa40cUsfm7ba5KaohVgSpRCoYZcVIGYI0xu7F11LbKraWtrp0p6eFaJnkc5ADyqYCqTVl+SxLtLU7SXM3ihu60dXR74SnQh8ioRdCCCDn/fHWblb5mmW424qlfEu7k2izpx+m/4P9J7Zg8juc8df4f3O9iSMC77QJPFEHBZUDbqhgODZKTljsdyuMVtpxIytLLIdyGBPfK/JR/3gBmToMBpw7VWeSFHkrEhdlBaOTRkPQ9xhiGHh7SVIE9ZUP5mX1zfT9u+dWy7Z54YCy3K2x3GFVLtDNE2/BPH74m6j7EHQjQ4r9TYbHtRXpDtNaYJbrSJ6TmyrLHn7kyOq5nUHPdJy5gm2Y07lbY7jCoLtDPE2/BOnvibqPsQdCNDgIW6eHey12hSOS1x0xjj+mr0hMLBPid3LMdjnjz/AA62ae6m5T0T1Mv6eUc0rNGCiBFO5wJyA454lrfcpHnNvuCrDXxrnkvsnX5pny6jip48ic1xuUNtgV5A0ksh3IYI9Xlb4qPzwA1OQwFbumxuxlBWxXaSxQtW/VBgigzUyy8QAgIUnnqMhqTpidt1umWc3G4ssldIu6ApzSnT4J+W4k9sgFut0qzm43FlkrpF3QFOaU6fBPy3EnsABJ4BhhhgGGGGAh9qoYn2eqpHjRnhXfjYqCUbqDyPfEH4d/uqaprKj9apVggmk9Them8dcu2GGAumGGGAYYYYD//Z',
+  'Ramiączka odpinane': 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAyADIDASIAAhEBAxEB/8QAGwABAAIDAQEAAAAAAAAAAAAAAAUGAgMEBwH/xAA3EAABAwIEAwYDBgcBAAAAAAABAgMEAAUREiExBkFRBxMyUmHBFCKxJDNicXKRFyMlQoGh0eH/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A9mrVIkMxI7kiQ4lpptJUtajgEjrSTJZhx3JEh1LTLacy1qOAAqKYjPXqSidPaU1EaUFRYixgVHk44OvRPLc6+EPjUV6/K+JuCXGoJ+4hklJcHnd568kbDnroM3rGIf2ix5Yj6de5BIYe/CpOw/UBiPUaHquF7tNpH9RucSJzAfeSgn9zUHP7S+D4EZTyr5GfI2bjq7xaj0AHvQT1tuTVyZUpKVNPNKyPMOeNpfQ/UHYjUV2VRbFxVF4ylvyLRGk269QEDvWZSMqXWydELI5Hkd0nUYjEG3W25NXJlSkpU080rI8w542ldD7HYjUUHZSlKCEitm/SU3CRrBZcPwbHJZBw71XXUfKOQ13Iwr1+vN64k4le4T4Yk/AtxEhVyuQGJax2Qj8X/u2BqyWN74NAscj5JERGDROzzI0StPXTAEcj6EE0/he5RuEOML5Y76RGeuk5cyHMdOCJCFbJzciPqT6YhMWzst4VgDvJME3OSrVyRPWXVLPUg6f6qaZ4c4ftqjKj2W3x1tDN3jcZCVJw6ECpUHEYiua4yoUSA89cJDUeMEEOOOrCUgEdTQUbsfbVMtd34ie1fu1wWsk+UbD91Kq4XK3vKeTcbcUontJy4K0S+jfu1+x/tPpiD512M3+MwJnC+dbiUvuPQX+7UEvtY4EjTTUY6+avTLlcWrbHDikqddcORlhHjdXySP8AuwGJOgoONniqzuMoW5MQytSQVNuaKQeh9RSoYdnsSSA/MkL+Jd+d7u/DnOqsPTHGlBZblbm7iwlJWpl5pWdh9vxNK6j6EHQjQ1ESIVv4mYXZOJbey7KaGbKQQHE7d40rcDqMcQdDyJsdcdytrdxZSCtTL7Ss7D6PG0rqPoQdCNDQVD+GBhjJZ+Lb7bmOTKZOZCfyGmFZxeyqzqkok3ufcr66g4pE+QVIB/SPcmrNb7m4uQq33BKWZ7YxwT4H0+dHp1G6TvyJ3XG5M21hK3Apx1w5GWG9Vuq8qR77AanAUGEuTDssNsIYAP3UaOwgBSzyQkf4/IAYnQVrt1ueS+bjcVJcnOJygJOKI6PIj3VuT6YALdbnUvm43FSXJzicoCTiiOjyI91bk+gAEnQKUpQKUpQQ/FTLTnD0pxbaFLZTnbUUglCuoPI+tQfZ39qjSZkj+dJCggPOfMsJ6Zjrh6UpQXSlKUClKUH/2Q==',
+};
 
 
 
@@ -938,7 +1043,7 @@ function render() {
     const isBra = p.sizeType === 'bra';
     const delay = Math.min(idx * 0.04, 0.4);
     return `<div class="card" style="animation-delay:${delay}s">
-      <div class="card-img">
+      <div class="card-img${p.img ? '' : ' no-photo'}">
         ${p.img
           ? `<img src="${p.img}" alt="${esc(p.name)}" loading="lazy" />`
           : `<svg class="no-img-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>${esc(p.name)}</span>`}
@@ -961,7 +1066,15 @@ function render() {
           ).join('')}</div>` : ''}
         ${p.marks.length ? `
           <div class="sec-lbl">Oznaczenia</div>
-          <div class="chips">${p.marks.map(m => `<span class="chip chip-mark">${esc(m)}</span>`).join('')}</div>` : ''}
+          <div class="card-marks">${p.marks.map(m => {
+            const img = MARK_PICTOGRAMS[m];
+            return img
+              ? `<div class="card-mark-icon" title="${esc(m)}"><img src="${img}" alt="${esc(m)}" /></div>`
+              : `<span class="chip chip-mark">${esc(m)}</span>`;
+          }).join('')}</div>` : ''}
+        ${p.cupTypes && p.cupTypes.length ? `
+          <div class="sec-lbl">Typ miseczki</div>
+          <div class="chips" style="margin-bottom:9px">${p.cupTypes.map(t => `<span class="chip" style="background:var(--accent-light);color:var(--accent-text);border-color:transparent">${esc(t)}</span>`).join('')}</div>` : ''}
         ${p.notes ? `<div class="card-note">${esc(p.notes)}</div>` : ''}
         <div class="card-actions">
           <button class="btn btn-sm" onclick="openProductModal(${p.id})">
@@ -984,7 +1097,7 @@ function esc(s) {
 
 // ─── PRODUCT MODAL ───────────────────────────────────────────────────────────
 function openProductModal(id) {
-  editId = id || null; fSizes = []; fMarks = []; fColors = []; imgData = null; rangeFrom = ''; rangeTo = '';
+  editId = id || null; fSizes = []; fMarks = []; fColors = []; fCupTypes = []; imgData = null; rangeFrom = ''; rangeTo = '';
   document.getElementById('f-code').value = '';
   document.getElementById('f-notes').value = '';
   document.getElementById('imgdrop').innerHTML = `
@@ -1001,7 +1114,7 @@ function openProductModal(id) {
     const p = products.find(x => x.id === id);
     document.getElementById('f-code').value = p.code || '';
     document.getElementById('f-notes').value = p.notes || '';
-    fSizes = [...p.sizes]; fMarks = [...p.marks]; fColors = p.colors.map(c => ({...c}));
+    fSizes = [...p.sizes]; fMarks = [...p.marks]; fColors = p.colors.map(c => ({...c})); fCupTypes = [...(p.cupTypes||[])];
     imgData = p.img;
     if (p.img) document.getElementById('imgdrop').innerHTML = `<img src="${p.img}" alt="Podgląd" />`;
     fillCollSel(p.collId || '');
@@ -1019,7 +1132,7 @@ function openProductModal(id) {
     setSizeType('clothing');
     initBra([...DEFAULT_BANDS], {});
   }
-  renderFormTags('sizes'); renderPresets(); renderMarksGrid();
+  renderFormTags('sizes'); renderPresets(); renderMarksGrid(); renderCupTrigger(); renderCupTags();
   document.getElementById('prod-ov').classList.add('open');
   setTimeout(() => document.getElementById('f-code').focus(), 100);
 }
@@ -1123,10 +1236,7 @@ function setSizeType(type) {
 let rangeFrom = '', rangeTo = '';
 
 function renderPresets() {
-  // clothing individual toggles
-  renderPresetGroup('presets-clothing', CLOTHING_SIZES);
-  renderPresetGroup('presets-misc', PRESETS_MISC);
-  // range buttons
+  // range buttons only
   renderRangeButtons('range-from', rangeFrom);
   renderRangeButtons('range-to', rangeTo);
 }
@@ -1174,12 +1284,89 @@ function togglePreset(s) {
 }
 
 // ─── BRA BUILDER ─────────────────────────────────────────────────────────────
+// ─── CUP TYPES ───────────────────────────────────────────────────────────────
+const CUP_TYPES = [
+  'Full Cup',
+  'Soft Cup',
+  'Full Soft Cup',
+  'New Full Cup',
+  'Semi-Soft Cup',
+  'Full Cup + Sewn Cup',
+  'Push Up',
+  '3-Point Push Up',
+  'Max Push Up',
+  'Max Sizes',
+];
+
+let fCupTypes = [];
+
+function toggleCupDropdown() {
+  const trigger = document.getElementById('cup-trigger');
+  const dropdown = document.getElementById('cup-dropdown');
+  const isOpen = dropdown.classList.contains('open');
+  if (isOpen) {
+    dropdown.classList.remove('open');
+    trigger.classList.remove('open');
+  } else {
+    renderCupDropdown();
+    dropdown.classList.add('open');
+    trigger.classList.add('open');
+  }
+}
+
+function closeCupDropdown() {
+  document.getElementById('cup-dropdown').classList.remove('open');
+  document.getElementById('cup-trigger').classList.remove('open');
+}
+
+function renderCupDropdown() {
+  document.getElementById('cup-dropdown').innerHTML = CUP_TYPES.map(t => {
+    const sel = fCupTypes.includes(t);
+    return `<div class="multiselect-option${sel?' selected':''}" onclick="toggleCupType('${t.replace(/'/g,"\\'")}')">
+      <span class="multiselect-checkbox"></span>
+      <span>${t}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleCupType(t) {
+  if (fCupTypes.includes(t)) fCupTypes = fCupTypes.filter(x => x !== t);
+  else fCupTypes.push(t);
+  renderCupDropdown();
+  renderCupTrigger();
+  renderCupTags();
+}
+
+function renderCupTrigger() {
+  const el = document.getElementById('cup-trigger-text');
+  if (!fCupTypes.length) {
+    el.textContent = 'Wybierz typ miseczki…';
+    el.classList.add('placeholder');
+  } else {
+    el.textContent = fCupTypes.join(', ');
+    el.classList.remove('placeholder');
+  }
+}
+
+function renderCupTags() {
+  document.getElementById('cup-tags').innerHTML = fCupTypes.map(t =>
+    `<span class="cup-tag">${t}<button onclick="toggleCupType('${t.replace(/'/g,"\\'")}')">×</button></span>`
+  ).join('');
+}
+
+// close dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('cup-type-wrap');
+  if (wrap && !wrap.contains(e.target)) closeCupDropdown();
+});
+
 // ─── BRA DRAG-SELECT ─────────────────────────────────────────────────────────
 let _drag = { active: false, mode: null }; // mode: 'add' | 'remove'
 
 function initBra(bands, sel) {
   braBands = [...bands]; braSelected = {...sel};
   renderBra();
+  renderBraPresetBtns();
   // bind drag listeners once on the builder container
   const builder = document.getElementById('bra-builder');
   builder.addEventListener('mousedown', braMouseDown);
@@ -1287,22 +1474,72 @@ function removeBand(band) {
   renderBra();
 }
 // ─── BRA PRESETS ─────────────────────────────────────────────────────────────
-const BRA_PRESETS = {
+const DEFAULT_BRA_PRESETS = {
   '730':  ['38B','38C','38D','38E','40B','40C','40D','40E','40F','42B','42C','42D','42E','42F','44B','44C','44D','44E','44F','46C','46D'],
   '940':  ['38B','38C','38D','38E','40B','40C','40D','40E','40F','42B','42C','42D','42E','42F','44B','44C','44D','44E','44F'],
   '995':  ['38F','38G','40E','40F','40G','40H','42D','42E','42F','42G','42H','44D','44E','44F','44G','44H','46C','46D','46E','46F','48D','48E'],
   '8030': ['38C','38D','38E','40C','40D','40E','40F','42C','42D','42E','42F','44C','44D','44E','44F','46C','46D','46E','46F','48C','48D'],
 };
+// merge default presets with any custom ones saved in localStorage
+let BRA_PRESETS = Object.assign({}, DEFAULT_BRA_PRESETS, JSON.parse(localStorage.getItem('bra_custom_presets') || '{}'));
 
 function applyBraPreset(name) {
   const sizes = BRA_PRESETS[name];
-  if (!sizes || !sizes.length) { toast('Preset "' + name + '" nie ma jeszcze przypisanych rozmiarów'); return; }
-  // clear current selection
+  if (!sizes || !sizes.length) { toast('Preset "' + name + '" jest pusty'); return; }
   Object.keys(braSelected).forEach(k => braSelected[k] = false);
-  // apply preset sizes
   sizes.forEach(s => { braSelected[s] = true; });
   renderBra();
   toast('Zaznaczono preset ' + name + ' (' + sizes.length + ' rozmiarów)');
+}
+
+function renderBraPresetBtns() {
+  const wrap = document.getElementById('bra-preset-btns');
+  if (!wrap) return;
+  const checkSvg = `<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  wrap.innerHTML = Object.keys(BRA_PRESETS).map(name => {
+    const isDefault = name in DEFAULT_BRA_PRESETS;
+    const safeName = name.replace(/'/g, "\\'");
+    if (isDefault) {
+      return `<button class="bra-preset-btn" onclick="applyBraPreset('${safeName}')">${checkSvg} ${name}</button>`;
+    } else {
+      return `<div style="display:inline-flex;align-items:center;border:1px solid var(--border-md);border-radius:var(--radius);overflow:hidden;">
+        <button class="bra-preset-btn" style="border:none;border-radius:0;border-right:1px solid var(--border-md);" onclick="applyBraPreset('${safeName}')">${checkSvg} ${name}</button>
+        <button onclick="deleteCustomPreset('${safeName}')" title="Usuń preset" style="padding:0 8px;height:100%;background:none;border:none;cursor:pointer;color:var(--text-3);font-size:16px;display:flex;align-items:center;transition:all .15s;" onmouseover="this.style.background='var(--danger-bg)';this.style.color='var(--danger-text)'" onmouseout="this.style.background='none';this.style.color='var(--text-3)'">×</button>
+      </div>`;
+    }
+  }).join('');
+}
+
+function toggleSavePreset(forceOpen) {
+  const panel = document.getElementById('save-preset-inline');
+  const open = forceOpen !== undefined ? forceOpen : !panel.classList.contains('open');
+  panel.classList.toggle('open', open);
+  if (open) setTimeout(() => document.getElementById('new-preset-name').focus(), 50);
+  else document.getElementById('new-preset-name').value = '';
+}
+
+function saveCurrentAsPreset() {
+  const name = document.getElementById('new-preset-name').value.trim();
+  if (!name) { document.getElementById('new-preset-name').focus(); return; }
+  const sizes = getBraSizes();
+  if (!sizes.length) { toast('Zaznacz najpierw rozmiary na siatce'); return; }
+  BRA_PRESETS[name] = sizes;
+  // save custom presets to localStorage
+  const custom = JSON.parse(localStorage.getItem('bra_custom_presets') || '{}');
+  custom[name] = sizes;
+  localStorage.setItem('bra_custom_presets', JSON.stringify(custom));
+  renderBraPresetBtns();
+  toggleSavePreset(false);
+  toast('Preset "' + name + '" zapisany (' + sizes.length + ' rozmiarów)');
+}
+
+function deleteCustomPreset(name) {
+  delete BRA_PRESETS[name];
+  const custom = JSON.parse(localStorage.getItem('bra_custom_presets') || '{}');
+  delete custom[name];
+  localStorage.setItem('bra_custom_presets', JSON.stringify(custom));
+  renderBraPresetBtns();
+  toast('Preset "' + name + '" usunięty');
 }
 
 function getBraSizes() {
@@ -1338,13 +1575,19 @@ function renderFormTags(type) {
     wrap.appendChild(ch);
   });
   wrap.appendChild(inp);
+  // show/hide wrapper based on whether there are sizes
+  wrap.style.display = fSizes.length ? '' : 'none';
 }
 function renderMarksGrid() {
   const grid = document.getElementById('marks-grid');
   if (!grid) return;
   grid.innerHTML = MARKS_PRESETS.map(m => {
     const on = fMarks.includes(m);
-    return `<button class="mark-toggle${on?' on':''}" onclick="toggleMark('${m.replace(/'/g,"\'")}')">${esc(m)}</button>`;
+    const img = MARK_PICTOGRAMS[m];
+    const safeM = m.replace(/'/g, "\\'");
+    return `<button class="mark-picto${on?' on':''}" onclick="toggleMark('${safeM}')" title="${esc(m)}">
+      ${img ? `<img src="${img}" alt="${esc(m)}" />` : `<span class="mark-picto-txt">${esc(m)}</span>`}
+    </button>`;
   }).join('');
 }
 function toggleMark(m) {
@@ -1372,7 +1615,7 @@ function saveProduct() {
   const notes = document.getElementById('f-notes').value.trim();
   const collId = document.getElementById('f-coll').value;
   const sizes = fSizeType === 'bra' ? getBraSizes() : [...fSizes];
-  const obj = { name: code, code, collId, img: imgData, sizeType: fSizeType, sizes, colors: fColors.map(c=>({...c})), marks: [...fMarks], notes };
+  const obj = { name: code, code, collId, img: imgData, sizeType: fSizeType, sizes, colors: fColors.map(c=>({...c})), marks: [...fMarks], cupTypes: [...fCupTypes], notes };
   if (editId) {
     const idx = products.findIndex(x => x.id === editId);
     products[idx] = { id: editId, ...obj };
@@ -1384,7 +1627,7 @@ function saveProduct() {
   persist(); closeModal('prod-ov'); render();
 }
 function delProduct(id) {
-  if (!confirm('Usunąć ten produkt?')) return;
+  if (!window.confirm('Usunąć ten produkt?')) return;
   products = products.filter(p => p.id !== id);
   persist(); render(); toast('Produkt usunięty');
 }
@@ -1571,6 +1814,150 @@ async function reloadFromCloud() {
 }
 
 init();
+</script>
+
+<!-- ═══════════════════ PRINT MODAL ═══════════════════ -->
+<div class="modal-bg" id="print-ov" onclick="bgClick(event,'print-ov')">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-hdr">
+      <div class="modal-title">Drukuj podgląd</div>
+      <button class="modal-close" onclick="closeModal('print-ov')" aria-label="Zamknij">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="fg">
+      <label class="flbl">Wybierz kolekcję do druku</label>
+      <select class="finput" id="print-coll-sel" style="cursor:pointer">
+        <option value="">Wszystkie produkty</option>
+      </select>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:4px;">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline;vertical-align:middle;margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Otworzy się podgląd wydruku z kartami produktów. Użyj <strong>Ctrl+P</strong> (lub <strong>⌘+P</strong> na Mac) aby wydrukować lub zapisać jako PDF.
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('print-ov')">Anuluj</button>
+      <button class="btn btn-primary" onclick="doPrint()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Otwórz podgląd wydruku
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── PRINT ───────────────────────────────────────────────────────────────────
+function openPrintModal() {
+  const sel = document.getElementById('print-coll-sel');
+  sel.innerHTML = '<option value="">Wszystkie produkty</option>' +
+    collections.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  // pre-select currently active filter
+  const activeFilter = document.getElementById('filter-coll').value;
+  if (activeFilter) sel.value = activeFilter;
+  document.getElementById('print-ov').classList.add('open');
+}
+
+function doPrint() {
+  const collId = document.getElementById('print-coll-sel').value;
+  const col = collId ? collections.find(c => c.id === collId) : null;
+  const list = collId ? products.filter(p => p.collId === collId) : products;
+
+  if (!list.length) { toast('Brak produktów do wydruku'); return; }
+
+  const printWin = window.open('', '_blank', 'width=1100,height=800');
+
+  const cards = list.map(p => {
+    const pcol = getColl(p.collId);
+    const isBra = p.sizeType === 'bra';
+    return `
+      <div class="pcard">
+        <div class="pcard-img">
+          ${p.img
+            ? `<img src="${p.img}" alt="${p.code||p.name}" />`
+            : `<div class="pcard-noimg">${p.code||'—'}</div>`}
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-top">
+            <div class="pcode">${p.code || '—'}</div>
+            ${pcol ? `<span class="pcoll" style="border-left:3px solid ${pcol.color}">${pcol.name}</span>` : ''}
+          </div>
+          ${p.sizes.length ? `
+            <div class="plbl">Rozmiary <span class="ptype">${isBra ? 'Biustonoszowe' : 'Odzieżowe'}</span></div>
+            <div class="pchips">${p.sizes.map(s => `<span class="pchip">${s}</span>`).join('')}</div>` : ''}
+          ${p.colors.length ? `
+            <div class="plbl">Kolorystyka</div>
+            <div class="pcolors">${p.colors.map(c =>
+              `<div class="pcdot-w"><div class="pcdot" style="background:${c.hex}"></div><span>${c.label}</span></div>`
+            ).join('')}</div>` : ''}
+          ${p.marks.length ? `
+            <div class="plbl">Oznaczenia</div>
+            <div class="pmarks">${p.marks.map(m => {
+              const img = MARK_PICTOGRAMS[m];
+              return img
+                ? `<div class="pmark-icon" title="${m}"><img src="${img}" alt="${m}" /></div>`
+                : `<span class="pmark">${m}</span>`;
+            }).join('')}</div>` : ''}
+          ${p.cupTypes && p.cupTypes.length ? `
+            <div class="plbl">Typ miseczki</div>
+            <div class="pchips">${p.cupTypes.map(t => `<span class="pmark">${t}</span>`).join('')}</div>` : ''}
+          ${p.notes ? `<div class="pnotes">${p.notes}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  const title = col ? `Kolekcja: ${col.name}` : 'Wszystkie produkty';
+  const date = new Date().toLocaleDateString('pl-PL');
+
+  printWin.document.write(`<!DOCTYPE html>
+<html lang="pl"><head>
+<meta charset="UTF-8"/>
+<title>${title} — Centrum Produktów</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1814;font-size:13px;padding:20px}
+  .print-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1a1814}
+  .print-header h1{font-size:20px;font-weight:700}
+  .print-header .meta{font-size:12px;color:#888}
+  .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .pcard{border:1px solid #e0ddd8;border-radius:10px;overflow:hidden;break-inside:avoid}
+  .pcard-img{width:100%;background:#f5f3ef;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .pcard-img img{width:100%;height:auto;display:block;object-fit:contain}
+  .pcard-noimg{height:120px;width:100%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#aaa}
+  .pcard-body{padding:10px 12px 12px}
+  .pcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:7px}
+  .pcode{font-size:15px;font-weight:700;color:#1a1814}
+  .pcoll{font-size:11px;color:#666;padding:2px 6px;background:#f5f3ef;border-radius:4px;white-space:nowrap}
+  .plbl{font-size:10px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin:7px 0 4px}
+  .ptype{background:#ebf2fb;color:#1a4a8a;padding:1px 5px;border-radius:3px;font-weight:400;text-transform:none;letter-spacing:0}
+  .pchips{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
+  .pchip{font-size:11px;padding:2px 6px;border:1px solid #e0ddd8;border-radius:4px;color:#555;background:#fafaf8}
+  .pmark{font-size:11px;padding:2px 6px;border-radius:4px;background:#f5eae5;color:#8b3319}
+  .pmarks{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px}
+  .pmark-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+  .pmark-icon img{width:26px;height:26px;object-fit:contain}
+  .pcolors{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
+  .pcdot-w{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .pcdot{width:18px;height:18px;border-radius:50%;border:1px solid #e0ddd8}
+  .pcdot-w span{font-size:9px;color:#aaa}
+  .pnotes{font-size:11px;color:#aaa;margin-top:6px;line-height:1.5}
+  @media print{
+    body{padding:10px}
+    .pgrid{grid-template-columns:repeat(3,1fr)}
+    @page{margin:10mm;size:A4}
+  }
+</style>
+</head><body>
+<div class="print-header">
+  <h1>${title}</h1>
+  <div class="meta">Centrum Produktów &nbsp;|&nbsp; ${date} &nbsp;|&nbsp; ${list.length} produktów</div>
+</div>
+<div class="pgrid">${cards}</div>
+<script>window.onload=()=>{window.print();}<\/script>
+</body></html>`);
+
+  printWin.document.close();
+  closeModal('print-ov');
+}
 </script>
 </body>
 </html>
