@@ -1955,17 +1955,13 @@ function doPrint() {
 
   .print-page{
     width:198mm;
-    height:285mm;
-    display:grid;
-    grid-template-rows:auto 1fr;
     page-break-after:always;
-    overflow:hidden;
   }
   .print-page:last-child{page-break-after:auto}
 
   .print-header{
     display:flex;align-items:baseline;justify-content:space-between;
-    padding-bottom:4px;margin-bottom:4px;
+    padding-bottom:4px;margin-bottom:5px;
     border-bottom:1.5px solid #1a1814;
   }
   .print-header h1{font-size:13px;font-weight:700}
@@ -1975,27 +1971,22 @@ function doPrint() {
   .pgrid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    grid-template-rows:repeat(3,1fr);
-    gap:3px;
-    overflow:hidden;
+    gap:4px;
   }
 
   .pcard{
     border:1px solid #ddd;border-radius:5px;
-    overflow:hidden;display:grid;
-    grid-template-rows:auto 1fr;
+    overflow:hidden;display:flex;flex-direction:column;
   }
   .pcard-img{
     background:#f5f3ef;overflow:hidden;
     display:flex;align-items:center;justify-content:center;
-    height:76px;
+    height:175px;flex-shrink:0;
   }
-  .pcard-img img{width:100%;height:76px;object-fit:contain;display:block}
+  .pcard-img img{width:100%;height:175px;object-fit:contain;display:block}
   .pcard-noimg{height:30px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#ccc}
   .pcard-body{
-    padding:4px 5px 4px;
-    overflow:hidden;
-    display:flex;flex-direction:column;gap:0;
+    padding:5px 6px 5px;
   }
   .pcard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:3px;margin-bottom:3px}
   .pcode{font-size:10px;font-weight:700;color:#1a1814;line-height:1.2}
