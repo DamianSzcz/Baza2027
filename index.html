@@ -1508,21 +1508,33 @@ function removeBand(band) {
   renderBra();
 }
 // ─── BRA PRESETS ─────────────────────────────────────────────────────────────
-const DEFAULT_BRA_PRESETS = {
-  '730':  ['38B','38C','38D','38E','40B','40C','40D','40E','40F','42B','42C','42D','42E','42F','44B','44C','44D','44E','44F','46C','46D'],
-  '995':  ['38F','38G','40E','40F','40G','40H','42D','42E','42F','42G','42H','44D','44E','44F','44G','44H','46C','46D','46E','46F','48D','48E'],
-  '8030': ['38C','38D','38E','40C','40D','40E','40F','42C','42D','42E','42F','44C','44D','44E','44F','46C','46D','46E','46F','48C','48D'],
-};
+const DEFAULT_BRA_PRESETS = {};
 // merge default presets with any custom ones saved in localStorage
-let BRA_PRESETS = Object.assign({}, DEFAULT_BRA_PRESETS, JSON.parse(localStorage.getItem('bra_custom_presets') || '{}'));
+// support old format (plain arrays) by converting to {sizes, marks}
+function normalizePreset(p) {
+  if (Array.isArray(p)) return { sizes: p, marks: [] };
+  return p;
+}
+let BRA_PRESETS = {};
+Object.assign(BRA_PRESETS, DEFAULT_BRA_PRESETS);
+const _stored = JSON.parse(localStorage.getItem('bra_custom_presets') || '{}');
+Object.keys(_stored).forEach(k => { BRA_PRESETS[k] = normalizePreset(_stored[k]); });
 
 function applyBraPreset(name) {
-  const sizes = BRA_PRESETS[name];
-  if (!sizes || !sizes.length) { toast('Preset "' + name + '" jest pusty'); return; }
+  const preset = normalizePreset(BRA_PRESETS[name]);
+  if (!preset.sizes.length) { toast('Preset "' + name + '" jest pusty'); return; }
+  // apply sizes
   Object.keys(braSelected).forEach(k => braSelected[k] = false);
-  sizes.forEach(s => { braSelected[s] = true; });
+  preset.sizes.forEach(s => { braSelected[s] = true; });
   renderBra();
-  toast('Zaznaczono preset ' + name + ' (' + sizes.length + ' rozmiarów)');
+  // apply marks if any saved
+  if (preset.marks && preset.marks.length) {
+    fMarks = [...preset.marks];
+    renderMarksGrid();
+    toast('Zaznaczono preset ' + name + ' (' + preset.sizes.length + ' rozmiarów + oznaczenia)');
+  } else {
+    toast('Zaznaczono preset ' + name + ' (' + preset.sizes.length + ' rozmiarów)');
+  }
 }
 
 function renderBraPresetBtns() {
@@ -1532,11 +1544,15 @@ function renderBraPresetBtns() {
   wrap.innerHTML = Object.keys(BRA_PRESETS).map(name => {
     const isDefault = name in DEFAULT_BRA_PRESETS;
     const safeName = name.replace(/'/g, "\\'");
+    const preset = normalizePreset(BRA_PRESETS[name]);
+    const tip = preset.marks && preset.marks.length
+      ? `${preset.sizes.length} rozmiarów + ${preset.marks.length} oznaczenia`
+      : `${preset.sizes.length} rozmiarów`;
     if (isDefault) {
-      return `<button class="bra-preset-btn" onclick="applyBraPreset('${safeName}')">${checkSvg} ${name}</button>`;
+      return `<button class="bra-preset-btn" onclick="applyBraPreset('${safeName}')" title="${tip}">${checkSvg} ${name}</button>`;
     } else {
       return `<div style="display:inline-flex;align-items:center;border:1px solid var(--border-md);border-radius:var(--radius);overflow:hidden;">
-        <button class="bra-preset-btn" style="border:none;border-radius:0;border-right:1px solid var(--border-md);" onclick="applyBraPreset('${safeName}')">${checkSvg} ${name}</button>
+        <button class="bra-preset-btn" style="border:none;border-radius:0;border-right:1px solid var(--border-md);" onclick="applyBraPreset('${safeName}')" title="${tip}">${checkSvg} ${name}</button>
         <button onclick="deleteCustomPreset('${safeName}')" title="Usuń preset" style="padding:0 8px;height:100%;background:none;border:none;cursor:pointer;color:var(--text-3);font-size:16px;display:flex;align-items:center;transition:all .15s;" onmouseover="this.style.background='var(--danger-bg)';this.style.color='var(--danger-text)'" onmouseout="this.style.background='none';this.style.color='var(--text-3)'">×</button>
       </div>`;
     }
@@ -1556,14 +1572,16 @@ function saveCurrentAsPreset() {
   if (!name) { document.getElementById('new-preset-name').focus(); return; }
   const sizes = getBraSizes();
   if (!sizes.length) { toast('Zaznacz najpierw rozmiary na siatce'); return; }
-  BRA_PRESETS[name] = sizes;
-  // save custom presets to localStorage
+  const marks = [...fMarks]; // save currently selected marks too
+  const preset = { sizes, marks };
+  BRA_PRESETS[name] = preset;
   const custom = JSON.parse(localStorage.getItem('bra_custom_presets') || '{}');
-  custom[name] = sizes;
+  custom[name] = preset;
   localStorage.setItem('bra_custom_presets', JSON.stringify(custom));
   renderBraPresetBtns();
   toggleSavePreset(false);
-  toast('Preset "' + name + '" zapisany (' + sizes.length + ' rozmiarów)');
+  const marksInfo = marks.length ? ` + ${marks.length} oznaczenia` : '';
+  toast('Preset "' + name + '" zapisany (' + sizes.length + ' rozmiarów' + marksInfo + ')');
 }
 
 function deleteCustomPreset(name) {
