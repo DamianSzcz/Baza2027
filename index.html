@@ -673,9 +673,14 @@
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="q" placeholder="Szukaj po nazwie, kodzie, kolekcji lub oznaczeniu…" oninput="render()" />
     </div>
-    <select class="filter-sel" id="filter-coll" onchange="render()">
-      <option value="">Wszystkie kolekcje</option>
-    </select>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <select class="filter-sel" id="filter-coll" onchange="render()">
+        <option value="">Wszystkie kolekcje</option>
+      </select>
+      <button class="btn btn-sm" id="btn-edit-coll" onclick="openEditCollModal()" title="Edytuj wybraną kolekcję" style="display:none;padding:7px 9px;">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+    </div>
     <span class="count-pill" id="count-lbl">0 produktów</span>
   </div>
   <div class="grid" id="grid"></div>
@@ -1028,6 +1033,9 @@ function renderFilterSel() {
   sel.innerHTML = '<option value="">Wszystkie kolekcje</option>' +
     collections.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   sel.value = cur;
+  // show edit button only when a specific collection is selected
+  const editBtn = document.getElementById('btn-edit-coll');
+  if (editBtn) editBtn.style.display = cur ? '' : 'none';
 }
 
 function render() {
@@ -1893,6 +1901,41 @@ async function reloadFromCloud() {
 init();
 </script>
 
+<!-- ═══════════════════ EDIT COLLECTION MODAL ═══════════════════ -->
+<div class="modal-bg" id="edit-coll-ov" onclick="bgClick(event,'edit-coll-ov')">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-hdr">
+      <div class="modal-title">Edytuj kolekcję</div>
+      <button class="modal-close" onclick="closeModal('edit-coll-ov')" aria-label="Zamknij">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <input type="hidden" id="edit-coll-id" />
+    <div class="fg">
+      <label class="flbl">Nazwa kolekcji</label>
+      <input class="finput" type="text" id="edit-coll-name" placeholder="Nazwa kolekcji" onkeydown="if(event.key==='Enter')saveEditColl()" />
+    </div>
+    <div class="fg">
+      <label class="flbl">Kolor identyfikacyjny</label>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input type="color" id="edit-coll-color" style="width:44px;height:44px;border:1px solid var(--border-md);border-radius:var(--radius);padding:3px;cursor:pointer;" />
+        <span style="font-size:13px;color:var(--text-2);">Kliknij aby zmienić kolor kolekcji</span>
+      </div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--text-2);margin-bottom:4px;">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline;vertical-align:middle;margin-right:4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Zmiana nazwy zaktualizuje ją we wszystkich przypisanych produktach.
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('edit-coll-ov')">Anuluj</button>
+      <button class="btn btn-primary" onclick="saveEditColl()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Zapisz zmiany
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════ PRINT MODAL ═══════════════════ -->
 <div class="modal-bg" id="print-ov" onclick="bgClick(event,'print-ov')">
   <div class="modal" style="max-width:420px;">
@@ -2071,15 +2114,15 @@ function doPrint() {
   .pbra-col{display:table-cell;vertical-align:middle;text-align:center}
   .pbra-empty{display:table-cell}
   .pbra-cell{display:inline-block;font-size:7px;padding:1px 3px;background:#fdf0f5;color:#7a3050;border:1px solid #e8b4c8;border-radius:2px;font-weight:500;line-height:1.3;width:100%;text-align:center}
-  .pmark{font-size:8px;padding:1px 4px;border-radius:3px;background:#f5eae5;color:#8b3319;line-height:1.3}
-  .pmarks{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:2px}
-  .pmark-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center}
-  .pmark-icon img{width:16px;height:16px;object-fit:contain}
+  .pmark{font-size:11px;padding:2px 6px;border-radius:3px;background:#f5eae5;color:#8b3319;line-height:1.4}
+  .pmarks{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px}
+  .pmark-icon{width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+  .pmark-icon img{width:24px;height:24px;object-fit:contain}
   .pcolors{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:2px}
   .pcdot-w{display:flex;flex-direction:column;align-items:center;gap:1px}
   .pcdot{width:12px;height:12px;border-radius:50%;border:1px solid #ddd}
   .pcdot-w span{font-size:7px;color:#bbb}
-  .pnotes{font-size:8px;color:#bbb;margin-top:2px;line-height:1.3}
+  .pnotes{font-size:11px;color:#888;margin-top:3px;line-height:1.5}
   @media print{
     .print-page{width:198mm;height:285mm}
     body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
