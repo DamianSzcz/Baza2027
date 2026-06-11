@@ -233,6 +233,8 @@
   .cdot-c { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border); }
   .clbl { font-size: 10px; color: var(--text-3); }
   .card-note { font-size: 12px; color: var(--text-3); line-height: 1.55; margin-top: 8px; }
+  .card-date-inline { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .card-date-inline svg { width: 12px; height: 12px; stroke: var(--text-3); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
   .card-actions {
     display: flex; gap: 6px; margin-top: 14px;
     padding-top: 12px; border-top: 1px solid var(--border);
@@ -1077,7 +1079,13 @@ function render() {
       <div class="card-body">
         <div class="card-top">
           <div class="card-name">${esc(p.name)}</div>
-          ${p.code ? `<span class="card-code">${esc(p.code)}</span>` : ''}
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            ${p.updatedAt ? `<span class="card-date-inline">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              ${new Date(p.updatedAt).toLocaleString('pl-PL', {day:'2-digit',month:'2-digit',year:'numeric'})}
+            </span>` : ''}
+            ${p.code ? `<span class="card-code">${esc(p.code)}</span>` : ''}
+          </div>
         </div>
         ${col ? `<div class="coll-badge"><span class="coll-dot" style="background:${col.color}"></span>${esc(col.name)}</div>` : '<div style="margin-bottom:12px"></div>'}
         ${p.sizes.length ? `
@@ -1101,6 +1109,7 @@ function render() {
               ? `<div class="card-mark-icon" title="${esc(m)}"><img src="${img}" alt="${esc(m)}" /></div>`
               : `<span class="chip chip-mark">${esc(m)}</span>`;
           }).join('')}</div>` : ''}
+
         ${p.cupTypes && p.cupTypes.length ? `
           <div class="sec-lbl">Typ miseczki</div>
           <div class="chips" style="margin-bottom:9px">${p.cupTypes.map(t => `<span class="chip" style="background:var(--accent-light);color:var(--accent-text);border-color:transparent">${esc(t)}</span>`).join('')}</div>` : ''}
@@ -1685,7 +1694,7 @@ function saveProduct() {
   const notes = document.getElementById('f-notes').value.trim();
   const collId = document.getElementById('f-coll').value;
   const sizes = fSizeType === 'bra' ? getBraSizes() : [...fSizes];
-  const obj = { name: code, code, collId, img: imgData, sizeType: fSizeType, sizes, colors: fColors.map(c=>({...c})), marks: [...fMarks], cupTypes: [...fCupTypes], notes };
+  const obj = { name: code, code, collId, img: imgData, sizeType: fSizeType, sizes, colors: fColors.map(c=>({...c})), marks: [...fMarks], cupTypes: [...fCupTypes], notes, updatedAt: new Date().toISOString() };
   if (editId) {
     const idx = products.findIndex(x => x.id === editId);
     products[idx] = { id: editId, ...obj };
