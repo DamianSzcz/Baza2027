@@ -950,6 +950,13 @@ async function persist() {
   // always keep full data (with images) in localStorage
   localStorage.setItem('cp_products', JSON.stringify(products));
   localStorage.setItem('cp_colls', JSON.stringify(collections));
+  // auto-backup: keep last 3 snapshots
+  try {
+    const _bk = JSON.parse(localStorage.getItem('cp_auto_backups') || '[]');
+    _bk.unshift({ ts: new Date().toISOString(), products: JSON.parse(JSON.stringify(products)), collections: JSON.parse(JSON.stringify(collections)) });
+    if (_bk.length > 3) _bk.length = 3;
+    localStorage.setItem('cp_auto_backups', JSON.stringify(_bk));
+  } catch(e) { /* silent — storage full */ }
 
   if (!USE_CLOUD) return;
 
@@ -1911,18 +1918,7 @@ UWAGA: Zastąpi to aktualne dane!`)) return;
   reader.readAsText(file);
 }
 
-// Auto-backup to localStorage after every persist (extra safety net)
-const _originalPersist = persist;
-async function persist() {
-  await _originalPersist();
-  // keep last 3 auto-backups in localStorage
-  try {
-    const backups = JSON.parse(localStorage.getItem('cp_auto_backups') || '[]');
-    backups.unshift({ ts: new Date().toISOString(), products: JSON.parse(JSON.stringify(products)), collections: JSON.parse(JSON.stringify(collections)) });
-    if (backups.length > 3) backups.length = 3;
-    localStorage.setItem('cp_auto_backups', JSON.stringify(backups));
-  } catch(e) { /* silent */ }
-}
+// Auto-backup wrapper removed — logic merged into main persist
 
 // ─── EDIT / DELETE COLLECTION ────────────────────────────────────────────────
 function openEditCollModal() {
