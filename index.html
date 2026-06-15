@@ -661,6 +661,10 @@
       <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Drukuj
     </button>
+    <button class="btn" onclick="backupToFile()" title="Zapisz kopię zapasową danych do pliku JSON" style="border-color:var(--accent);color:var(--accent);">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+      Backup
+    </button>
     <button class="btn btn-primary" onclick="openProductModal()">
       <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Dodaj produkt
@@ -868,6 +872,17 @@
     <div class="import-info">
       Wgraj plik <strong>.xlsx</strong> wyeksportowany z tego centrum. Dane zostaną <strong>dołączone</strong> — istniejące produkty nie zostaną nadpisane. Kolekcje z pliku są dodawane automatycznie.<br><br>
       Możesz też wgrać własny plik Excel z kolumnami: <strong>Nazwa, Kod, Kolekcja, Typ rozmiarów, Rozmiary, Kolory, Oznaczenia, Notatki</strong>.
+    </div>
+    <div style="border-top:1px solid var(--border);margin:12px 0 0;padding-top:12px;">
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline;vertical-align:middle;margin-right:4px;"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+        Lub przywróć z pliku backup (.json)
+      </div>
+      <div class="import-drop" onclick="document.getElementById('f-backup').click()" style="padding:14px;">
+        <span style="font-weight:500;font-size:13px;">Kliknij aby wgrać plik centrum-backup-*.json</span>
+        <span style="font-size:12px;color:var(--text-3)">Zastąpi wszystkie aktualne dane</span>
+      </div>
+      <input type="file" id="f-backup" accept=".json" style="display:none" onchange="restoreFromBackup(this.files[0])" />
     </div>
     <div class="import-drop" onclick="document.getElementById('f-xlsx').click()" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="18"/><line x1="15" y1="15" x2="12" y2="18"/></svg>
@@ -1854,6 +1869,61 @@ function bgClick(e, id) { if (e.target === document.getElementById(id)) closeMod
 document.addEventListener('keydown', e => { if (e.key === 'Escape') ['prod-ov','coll-ov','import-ov'].forEach(closeModal); });
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+// ─── BACKUP / RESTORE ────────────────────────────────────────────────────────
+function backupToFile() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    version: 1,
+    products,
+    collections
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toLocaleDateString('pl-PL').replace(/\./g, '-');
+  a.href     = url;
+  a.download = `centrum-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`Backup zapisany — ${products.length} produktów`);
+}
+
+function restoreFromBackup(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.products || !data.collections) throw new Error('Nieprawidłowy format pliku');
+      const count = data.products.length;
+      if (!window.confirm(`Przywrócić ${count} produktów z backupu z dnia ${new Date(data.exportedAt).toLocaleDateString('pl-PL')}?
+
+UWAGA: Zastąpi to aktualne dane!`)) return;
+      products    = data.products;
+      collections = data.collections;
+      persist();
+      render();
+      toast(`Przywrócono ${count} produktów z backupu`);
+    } catch(err) {
+      toast('Błąd: nieprawidłowy plik backupu');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Auto-backup to localStorage after every persist (extra safety net)
+const _originalPersist = persist;
+async function persist() {
+  await _originalPersist();
+  // keep last 3 auto-backups in localStorage
+  try {
+    const backups = JSON.parse(localStorage.getItem('cp_auto_backups') || '[]');
+    backups.unshift({ ts: new Date().toISOString(), products: JSON.parse(JSON.stringify(products)), collections: JSON.parse(JSON.stringify(collections)) });
+    if (backups.length > 3) backups.length = 3;
+    localStorage.setItem('cp_auto_backups', JSON.stringify(backups));
+  } catch(e) { /* silent */ }
+}
+
 // ─── EDIT / DELETE COLLECTION ────────────────────────────────────────────────
 function openEditCollModal() {
   const collId = document.getElementById('filter-coll').value;
