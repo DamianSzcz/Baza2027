@@ -992,6 +992,21 @@ async function persist(changedProductIds, fullOverwrite) {
   }
 }
 
+// Ensures every product has the array fields render() depends on,
+// even if older/partial backup data is missing them (e.g. accessory
+// items like "chusty" that were saved without a sizes/marks field).
+// A single product missing one of these used to crash the entire
+// render() loop, making ALL product tiles disappear.
+function normalizeProduct(p) {
+  return {
+    ...p,
+    sizes:    Array.isArray(p.sizes)    ? p.sizes    : [],
+    marks:    Array.isArray(p.marks)    ? p.marks    : [],
+    colors:   Array.isArray(p.colors)   ? p.colors   : [],
+    cupTypes: Array.isArray(p.cupTypes) ? p.cupTypes : [],
+  };
+}
+
 async function loadFromCloud() {
   if (!USE_CLOUD) return false;
   try {
@@ -1009,7 +1024,7 @@ async function loadFromCloud() {
 
       products = data.products.map(p => {
         const isUrl = p.img && p.img.startsWith('http');
-        return { ...p, img: isUrl ? p.img : (imgMap[p.id] || null) };
+        return normalizeProduct({ ...p, img: isUrl ? p.img : (imgMap[p.id] || null) });
       });
       collections  = data.collections;
       localStorage.setItem('cp_products', JSON.stringify(products));
@@ -1957,7 +1972,7 @@ function restoreFromBackup(file) {
       if (!window.confirm(`Przywrócić ${count} produktów z backupu z dnia ${new Date(data.exportedAt).toLocaleDateString('pl-PL')}?
 
 UWAGA: Zastąpi to aktualne dane!`)) return;
-      products    = data.products;
+      products    = data.products.map(normalizeProduct);
       collections = data.collections;
       toast('Zapisywanie do chmury — nie zamykaj i nie odświeżaj strony…');
       await persist(null, true);
@@ -2044,6 +2059,7 @@ async function init() {
     {id:'c6', name:'Sardynia',  color:'#D4537E'}
   ];
   if (!products) products = [];
+  products = products.map(normalizeProduct);
 
   // one-time cleanup: clear old text marks and cupTypes from all products
   cleanOldMarks();
