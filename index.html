@@ -946,7 +946,7 @@ const MARK_PICTOGRAMS = {
 
 
 
-async function persist(changedProductIds) {
+async function persist(changedProductIds, fullOverwrite) {
   // always keep full data (with images) in localStorage
   localStorage.setItem('cp_products', JSON.stringify(products));
   localStorage.setItem('cp_colls', JSON.stringify(collections));
@@ -978,7 +978,11 @@ async function persist(changedProductIds) {
         const remoteById = new Map(remote.products.map(p => [p.id, p]));
         const localById   = new Map(products.map(p => [p.id, p]));
 
-        if (changedProductIds && changedProductIds.length) {
+        if (fullOverwrite) {
+          // Explicit bulk operation (import / restore-from-backup) —
+          // local state is intentionally authoritative.
+          mergedProducts = products;
+        } else if (changedProductIds && changedProductIds.length) {
           // Targeted merge: only overwrite specific changed products / deletions
           changedProductIds.forEach(id => {
             if (localById.has(id)) {
@@ -989,9 +993,10 @@ async function persist(changedProductIds) {
           });
           mergedProducts = Array.from(remoteById.values());
         } else {
-          // No specific change list provided (e.g. bulk import/restore) —
-          // local state is authoritative.
-          mergedProducts = products;
+          // No product changes at all (e.g. only collections were edited) —
+          // NEVER touch products; just adopt the freshest remote list so we
+          // don't accidentally erase products added by someone else.
+          mergedProducts = remote.products;
         }
         // Collections: union by id, prefer local version of edited ones
         const remoteColls = new Map((remote.collections||[]).map(c => [c.id, c]));
@@ -1917,7 +1922,7 @@ function processXlsx(file) {
   reader.onload = e => {
     try {
       const wb = XLSX.read(e.target.result, { type: 'array' });
-      let imported = 0, newColls = 0;
+      let imported = 0, newColls = 0; const _importedIds = [];
       const cs = wb.Sheets['Kolekcje'];
       if (cs) {
         XLSX.utils.sheet_to_json(cs, {header:1}).slice(1).forEach(r => {
@@ -1952,10 +1957,12 @@ function processXlsx(file) {
           return m ? { label: m[1].trim(), hex: m[2].trim() } : { label: s.trim(), hex: '#888' };
         }).filter(c => c.label) : [];
         const marks = marksRaw ? marksRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
-        products.push({ id: Date.now()+Math.random(), name, code, collId, img: null, sizeType, sizes, colors, marks, notes });
+        const _newId = Date.now()+Math.random();
+        products.push({ id: _newId, name, code, collId, img: null, sizeType, sizes, colors, marks, notes });
+        _importedIds.push(_newId);
         imported++;
       });
-      persist(); render();
+      persist(_importedIds); render();
       showImportResult('ok', `Zaimportowano ${imported} produktów${newColls ? ` i dodano ${newColls} nowych kolekcji` : ''}.`);
     } catch(err) {
       showImportResult('err', 'Błąd podczas odczytu pliku: ' + err.message);
@@ -2006,7 +2013,7 @@ function restoreFromBackup(file) {
 UWAGA: Zastąpi to aktualne dane!`)) return;
       products    = data.products;
       collections = data.collections;
-      persist();
+      persist(null, true);
       render();
       toast(`Przywrócono ${count} produktów z backupu`);
     } catch(err) {
@@ -2051,10 +2058,11 @@ function deleteCollection() {
   if (count > 0 && !window.confirm(`Usunąć kolekcję "${col.name}"? ${count} produkt(ów) straci przypisanie.`)) return;
   if (count === 0 && !window.confirm(`Usunąć kolekcję "${col.name}"?`)) return;
   collections = collections.filter(c => c.id !== id);
+  const _affectedIds = products.filter(p => p.collId === id).map(p => p.id);
   products = products.map(p => p.collId === id ? {...p, collId: ''} : p);
   const sel = document.getElementById('filter-coll');
   if (sel.value === id) sel.value = '';
-  persist();
+  persist(_affectedIds);
   render();
   closeModal('edit-coll-ov');
   toast(`Kolekcja "${col.name}" usunięta`);
@@ -2090,18 +2098,17 @@ async function init() {
 
 function cleanOldMarks() {
   const validMarks = new Set(MARKS_PRESETS);
-  let changed = false;
+  const changedIds = [];
   products = products.map(p => {
     // keep only marks that match current pictogram list
     const cleanMarks = (p.marks || []).filter(m => validMarks.has(m));
-    // clear cupTypes that might be stale (optional — keep valid ones)
     if (JSON.stringify(cleanMarks) !== JSON.stringify(p.marks || [])) {
-      changed = true;
+      changedIds.push(p.id);
       return { ...p, marks: cleanMarks };
     }
     return p;
   });
-  if (changed) persist();
+  if (changedIds.length) persist(changedIds);
 }
 
 function showLoadingOverlay(show) {
