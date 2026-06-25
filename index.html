@@ -1949,7 +1949,7 @@ function backupToFile() {
 
 function restoreFromBackup(file) {
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const data = JSON.parse(e.target.result);
       if (!data.products || !data.collections) throw new Error('Nieprawidłowy format pliku');
@@ -1959,9 +1959,10 @@ function restoreFromBackup(file) {
 UWAGA: Zastąpi to aktualne dane!`)) return;
       products    = data.products;
       collections = data.collections;
-      persist(null, true);
+      toast('Zapisywanie do chmury — nie zamykaj i nie odświeżaj strony…');
+      await persist(null, true);
       render();
-      toast(`Przywrócono ${count} produktów z backupu`);
+      toast(`✓ Przywrócono ${count} produktów z backupu i zapisano w chmurze`);
     } catch(err) {
       toast('Błąd: nieprawidłowy plik backupu');
     }
