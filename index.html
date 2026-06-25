@@ -946,7 +946,7 @@ const MARK_PICTOGRAMS = {
 
 
 
-async function persist() {
+async function persist(changedProductIds) {
   // always keep full data (with images) in localStorage
   localStorage.setItem('cp_products', JSON.stringify(products));
   localStorage.setItem('cp_colls', JSON.stringify(collections));
@@ -960,18 +960,63 @@ async function persist() {
 
   if (!USE_CLOUD) return;
 
-  // strip base64 images before sending to cloud (JSONBin limit: 100KB)
-  // Cloudinary images are URLs (small) — kept; base64 images are stripped
-  const productsNoImg = products.map(p => {
-    const isUrl = p.img && (p.img.startsWith('http://') || p.img.startsWith('https://'));
-    if (!p.img || isUrl) return p; // URL or no image — keep as-is
-    const { img, ...rest } = p;
-    return { ...rest, img: null, hasImg: true }; // strip base64
-  });
-
   setSyncStatus('saving');
   try {
-    const payload = { products: productsNoImg, collections };
+    // STEP 1: fetch freshest data from cloud to avoid overwriting other users' changes
+    const freshRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_KEY }
+    });
+    let mergedProducts = products;
+    let mergedCollections = collections;
+
+    if (freshRes.ok) {
+      const freshJson = await freshRes.json();
+      const remote = freshJson.record;
+      if (remote && Array.isArray(remote.products)) {
+        // Merge strategy: start from remote (latest from other users),
+        // then overlay only the products we actually changed locally.
+        const remoteById = new Map(remote.products.map(p => [p.id, p]));
+        const localById   = new Map(products.map(p => [p.id, p]));
+
+        if (changedProductIds && changedProductIds.length) {
+          // Targeted merge: only overwrite specific changed products / deletions
+          changedProductIds.forEach(id => {
+            if (localById.has(id)) {
+              remoteById.set(id, localById.get(id)); // updated or added
+            } else {
+              remoteById.delete(id); // deleted locally
+            }
+          });
+          mergedProducts = Array.from(remoteById.values());
+        } else {
+          // No specific change list provided (e.g. bulk import/restore) —
+          // local state is authoritative.
+          mergedProducts = products;
+        }
+        // Collections: union by id, prefer local version of edited ones
+        const remoteColls = new Map((remote.collections||[]).map(c => [c.id, c]));
+        collections.forEach(c => remoteColls.set(c.id, c));
+        // Remove collections deleted locally (present in remote, absent locally) only if a deletion happened —
+        // simplest safe approach: local collections list wins entirely since it's small and edited rarely.
+        mergedCollections = collections;
+
+        // Update local in-memory state to the merged result so the UI reflects reality
+        products = mergedProducts;
+        collections = mergedCollections;
+        localStorage.setItem('cp_products', JSON.stringify(products));
+        localStorage.setItem('cp_colls', JSON.stringify(collections));
+      }
+    }
+
+    // strip base64 images before sending to cloud (JSONBin limit: 100KB)
+    const productsNoImg = mergedProducts.map(p => {
+      const isUrl = p.img && (p.img.startsWith('http://') || p.img.startsWith('https://'));
+      if (!p.img || isUrl) return p;
+      const { img, ...rest } = p;
+      return { ...rest, img: null, hasImg: true };
+    });
+
+    const payload = { products: productsNoImg, collections: mergedCollections };
     const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
@@ -979,6 +1024,7 @@ async function persist() {
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     setSyncStatus('saved');
+    render(); // reflect merged state (e.g. other users' new products) immediately
   } catch(e) {
     setSyncStatus('error');
     console.warn('Cloud sync failed:', e);
@@ -1718,20 +1764,23 @@ function saveProduct() {
   const collId = document.getElementById('f-coll').value;
   const sizes = fSizeType === 'bra' ? getBraSizes() : [...fSizes];
   const obj = { name: code, code, collId, img: imgData, sizeType: fSizeType, sizes, colors: fColors.map(c=>({...c})), marks: [...fMarks], cupTypes: [...fCupTypes], notes, updatedAt: new Date().toISOString() };
+  let savedId;
   if (editId) {
     const idx = products.findIndex(x => x.id === editId);
     products[idx] = { id: editId, ...obj };
+    savedId = editId;
     toast('Produkt zaktualizowany');
   } else {
-    products.push({ id: Date.now(), ...obj });
+    savedId = Date.now();
+    products.push({ id: savedId, ...obj });
     toast('Produkt dodany');
   }
-  persist(); closeModal('prod-ov'); render();
+  persist([savedId]); closeModal('prod-ov'); render();
 }
 function delProduct(id) {
   if (!window.confirm('Usunąć ten produkt?')) return;
   products = products.filter(p => p.id !== id);
-  persist(); render(); toast('Produkt usunięty');
+  persist([id]); render(); toast('Produkt usunięty');
 }
 
 // ─── COLLECTIONS ─────────────────────────────────────────────────────────────
