@@ -962,66 +962,17 @@ async function persist(changedProductIds, fullOverwrite) {
 
   setSyncStatus('saving');
   try {
-    // STEP 1: fetch freshest data from cloud to avoid overwriting other users' changes
-    const freshRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}/latest`, {
-      headers: { 'X-Master-Key': JSONBIN_KEY }
-    });
-    let mergedProducts = products;
-    let mergedCollections = collections;
-
-    if (freshRes.ok) {
-      const freshJson = await freshRes.json();
-      const remote = freshJson.record;
-      if (remote && Array.isArray(remote.products)) {
-        // Merge strategy: start from remote (latest from other users),
-        // then overlay only the products we actually changed locally.
-        const remoteById = new Map(remote.products.map(p => [p.id, p]));
-        const localById   = new Map(products.map(p => [p.id, p]));
-
-        if (fullOverwrite) {
-          // Explicit bulk operation (import / restore-from-backup) —
-          // local state is intentionally authoritative.
-          mergedProducts = products;
-        } else if (changedProductIds && changedProductIds.length) {
-          // Targeted merge: only overwrite specific changed products / deletions
-          changedProductIds.forEach(id => {
-            if (localById.has(id)) {
-              remoteById.set(id, localById.get(id)); // updated or added
-            } else {
-              remoteById.delete(id); // deleted locally
-            }
-          });
-          mergedProducts = Array.from(remoteById.values());
-        } else {
-          // No product changes at all (e.g. only collections were edited) —
-          // NEVER touch products; just adopt the freshest remote list so we
-          // don't accidentally erase products added by someone else.
-          mergedProducts = remote.products;
-        }
-        // Collections: union by id, prefer local version of edited ones
-        const remoteColls = new Map((remote.collections||[]).map(c => [c.id, c]));
-        collections.forEach(c => remoteColls.set(c.id, c));
-        // Remove collections deleted locally (present in remote, absent locally) only if a deletion happened —
-        // simplest safe approach: local collections list wins entirely since it's small and edited rarely.
-        mergedCollections = collections;
-
-        // Update local in-memory state to the merged result so the UI reflects reality
-        products = mergedProducts;
-        collections = mergedCollections;
-        localStorage.setItem('cp_products', JSON.stringify(products));
-        localStorage.setItem('cp_colls', JSON.stringify(collections));
-      }
-    }
-
-    // strip base64 images before sending to cloud (JSONBin limit: 100KB)
-    const productsNoImg = mergedProducts.map(p => {
+    // Single request: send current local state directly.
+    // (We no longer fetch /latest first — that doubled API calls and
+    // exhausted the JSONBin free-tier request quota, causing HTTP 403.)
+    const productsNoImg = products.map(p => {
       const isUrl = p.img && (p.img.startsWith('http://') || p.img.startsWith('https://'));
       if (!p.img || isUrl) return p;
       const { img, ...rest } = p;
       return { ...rest, img: null, hasImg: true };
     });
 
-    const payload = { products: productsNoImg, collections: mergedCollections };
+    const payload = { products: productsNoImg, collections };
     const payloadStr = JSON.stringify(payload);
     const sizeKB = new Blob([payloadStr]).size / 1024;
     if (sizeKB > 480) {
@@ -1035,7 +986,6 @@ async function persist(changedProductIds, fullOverwrite) {
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     setSyncStatus('saved');
-    render(); // reflect merged state (e.g. other users' new products) immediately
   } catch(e) {
     setSyncStatus('error');
     console.warn('Cloud sync failed:', e);
