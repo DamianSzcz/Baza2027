@@ -2024,7 +2024,15 @@ async function init() {
     showLoadingOverlay(true);
     const loaded = await loadFromCloud();
     showLoadingOverlay(false);
-    if (!loaded) await persist();
+    if (!loaded) {
+      // Loading failed (network issue, transient error, etc.) — NEVER auto-write
+      // here, since products/collections may still be null/empty at this point
+      // and persisting now would silently wipe the real data in Firebase.
+      // Instead, fall back to whatever is in localStorage and let the person
+      // retry via the "Odśwież" button.
+      console.warn('Nie udało się wczytać danych z chmury — używam ostatniej znanej kopii lokalnej.');
+      showSyncErrorBanner('nie udało się wczytać danych z chmury przy starcie — kliknij Odśwież');
+    }
   }
   // apply defaults if still null
   if (!collections) collections = [
