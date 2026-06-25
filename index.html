@@ -1114,7 +1114,7 @@ function showSyncErrorBanner(detail) {
     document.body.appendChild(banner);
   }
   banner.innerHTML = `
-    <span>⚠️ Nie udało się zapisać zmian w chmurze — Twoja praca jest tylko na TYM urządzeniu. Nie zamykaj karty.</span>
+    <span>⚠️ Nie udało się zapisać zmian w chmurze (${esc(detail || 'nieznany błąd')}) — Twoja praca jest tylko na TYM urządzeniu. Nie zamykaj karty.</span>
     <button onclick="retryPersist()" style="background:#fff;color:#c0392b;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;">Spróbuj ponownie</button>
   `;
   banner.style.display = 'flex';
