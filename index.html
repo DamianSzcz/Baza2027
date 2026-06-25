@@ -634,7 +634,7 @@
 <!-- config banner (shown when no cloud keys set) -->
 <div id="config-banner" style="display:none">
   <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-  <span>Tryb <strong>lokalny</strong> — dane widoczne tylko na tym urządzeniu. Zdjęcia zawsze przechowywane lokalnie (za duże dla chmury). Aby synchronizować z zespołem: <a href="https://jsonbin.io" target="_blank">zarejestruj się na JSONBin.io</a> i wklej klucze API do pliku index.html (linie JSONBIN_KEY i JSONBIN_BIN).</span>
+  <span>Tryb <strong>lokalny</strong> — dane widoczne tylko na tym urządzeniu. Zdjęcia zawsze przechowywane lokalnie (za duże dla chmury). Aby synchronizować z zespołem: skonfiguruj Firebase Realtime Database (darmowe, <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>) i wklej URL bazy do pliku index.html (linia FIREBASE_DB_URL).</span>
   <button class="dismiss" onclick="this.parentElement.style.display='none'" aria-label="Zamknij">×</button>
 </div>
 
@@ -904,13 +904,12 @@ const DEFAULT_BANDS = ['38','40','42','44','46','48','50','52'];
 const CLOTHING_SIZES = ['S','M','L','XL','2XL','3XL','4XL','5XL','6XL'];
 const PRESETS_MISC = ['One size'];
 
-// ─── JSONBIN CONFIG ─────────────────────────────────────────────────────────
-// Wejdź na https://jsonbin.io → zarejestruj się → skopiuj Access Key
-// Utwórz bin z {} i skopiuj jego ID
-const JSONBIN_KEY = '$2a$10$ea1kG4rTPWsYuX63LF8i1.HD1zfw0Jw8qZM9iZ81ztaWVOp/2JCoW';
-const JSONBIN_BIN = '6a196d77ddf5aa59f773c3dd';
+// ─── FIREBASE CONFIG ────────────────────────────────────────────────────────
+// Realtime Database URL z panelu Firebase (Build → Realtime Database)
+const FIREBASE_DB_URL = 'https://centrum-produktow-default-rtdb.europe-west1.firebasedatabase.app';
+const FIREBASE_PATH = 'centrum.json'; // ścieżka węzła w bazie
 
-const USE_CLOUD = JSONBIN_KEY !== 'WKLEJ_TUTAJ_SWOJ_ACCESS_KEY' && JSONBIN_BIN !== 'WKLEJ_TUTAJ_ID_BINU';
+const USE_CLOUD = FIREBASE_DB_URL !== 'WKLEJ_TUTAJ_URL_BAZY';
 
 // ─── CLOUDINARY CONFIG ───────────────────────────────────────────────────────
 const CLOUDINARY_CLOUD = 'dh4nuklkx';
@@ -962,9 +961,9 @@ async function persist(changedProductIds, fullOverwrite) {
 
   setSyncStatus('saving');
   try {
-    // Single request: send current local state directly.
-    // (We no longer fetch /latest first — that doubled API calls and
-    // exhausted the JSONBin free-tier request quota, causing HTTP 403.)
+    // strip base64 images before sending to cloud — keep them local only
+    // (Firebase free tier easily handles this size, but base64 images are
+    // still large and better hosted on Cloudinary as URLs)
     const productsNoImg = products.map(p => {
       const isUrl = p.img && (p.img.startsWith('http://') || p.img.startsWith('https://'));
       if (!p.img || isUrl) return p;
@@ -974,14 +973,14 @@ async function persist(changedProductIds, fullOverwrite) {
 
     const payload = { products: productsNoImg, collections };
     const payloadStr = JSON.stringify(payload);
-    const sizeKB = new Blob([payloadStr]).size / 1024;
-    if (sizeKB > 480) {
-      // JSONBin free tier hard limit is 500KB — warn well before hitting it
-      throw new Error(`Baza danych jest za duża (${sizeKB.toFixed(0)} KB / limit 500 KB). Przenieś zdjęcia produktów na Cloudinary (Ustawienia obrazów) albo usuń nieużywane produkty.`);
+    const sizeMB = new Blob([payloadStr]).size / (1024 * 1024);
+    if (sizeMB > 8) {
+      // Firebase free tier total storage is 1GB, single-write practical limit ~10MB
+      throw new Error(`Baza danych jest za duża (${sizeMB.toFixed(1)} MB). Przenieś zdjęcia produktów na Cloudinary (Ustawienia obrazów) albo usuń nieużywane produkty.`);
     }
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
+    const res = await fetch(`${FIREBASE_DB_URL}/${FIREBASE_PATH}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
+      headers: { 'Content-Type': 'application/json' },
       body: payloadStr
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -997,12 +996,9 @@ async function loadFromCloud() {
   if (!USE_CLOUD) return false;
   try {
     setSyncStatus('saving');
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}/latest`, {
-      headers: { 'X-Master-Key': JSONBIN_KEY }
-    });
+    const res = await fetch(`${FIREBASE_DB_URL}/${FIREBASE_PATH}`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    const json = await res.json();
-    const data = json.record;
+    const data = await res.json();
     if (data && data.products && data.collections) {
       // merge local base64 images back (Cloudinary URLs are already in cloud data)
       const localProducts = JSON.parse(localStorage.getItem('cp_products') || '[]');
