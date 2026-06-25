@@ -1017,10 +1017,16 @@ async function persist(changedProductIds) {
     });
 
     const payload = { products: productsNoImg, collections: mergedCollections };
+    const payloadStr = JSON.stringify(payload);
+    const sizeKB = new Blob([payloadStr]).size / 1024;
+    if (sizeKB > 480) {
+      // JSONBin free tier hard limit is 500KB — warn well before hitting it
+      throw new Error(`Baza danych jest za duża (${sizeKB.toFixed(0)} KB / limit 500 KB). Przenieś zdjęcia produktów na Cloudinary (Ustawienia obrazów) albo usuń nieużywane produkty.`);
+    }
     const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_KEY },
-      body: JSON.stringify(payload)
+      body: payloadStr
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     setSyncStatus('saved');
@@ -1028,7 +1034,7 @@ async function persist(changedProductIds) {
   } catch(e) {
     setSyncStatus('error');
     console.warn('Cloud sync failed:', e);
-    toast('Błąd zapisu do chmury — sprawdź połączenie');
+    showSyncErrorBanner(e.message);
   }
 }
 
@@ -1082,7 +1088,49 @@ function setSyncStatus(status) {
   const s = states[status] || states.idle;
   el.textContent = s.icon + s.text;
   el.style.color = s.color;
+  if (status === 'saved') hideSyncErrorBanner();
 }
+
+// Highly visible, persistent error banner — does not auto-dismiss like a toast.
+// Shown when a cloud save genuinely fails, so the person knows their change
+// may only exist on this device until the connection is restored.
+function showSyncErrorBanner(detail) {
+  let banner = document.getElementById('sync-error-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'sync-error-banner';
+    banner.style.cssText = `
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: #c0392b; color: #fff; padding: 12px 20px;
+      font-size: 14px; font-weight: 600; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+    `;
+    document.body.appendChild(banner);
+  }
+  banner.innerHTML = `
+    <span>⚠️ Nie udało się zapisać zmian w chmurze — Twoja praca jest tylko na TYM urządzeniu. Nie zamykaj karty.</span>
+    <button onclick="retryPersist()" style="background:#fff;color:#c0392b;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;">Spróbuj ponownie</button>
+  `;
+  banner.style.display = 'flex';
+}
+function hideSyncErrorBanner() {
+  const banner = document.getElementById('sync-error-banner');
+  if (banner) banner.style.display = 'none';
+}
+async function retryPersist() {
+  hideSyncErrorBanner();
+  await persist();
+}
+
+// Warn before leaving the page if the last save attempt failed —
+// this is the moment data could otherwise be silently lost.
+window.addEventListener('beforeunload', (e) => {
+  if (_syncStatus === 'error') {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
 function getColl(id){ return collections.find(c => c.id === id); }
 
 // ─── FORM STATE ─────────────────────────────────────────────────────────────
